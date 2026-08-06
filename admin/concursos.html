@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Concursos — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .card-concurso-icone {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 0.5rem; min-height: 110px; text-align: center; position: relative;
+        border-radius: 12px; padding: 1rem 0.5rem; transition: all 0.15s ease;
+    }
+    .card-concurso-icone:hover { background: #f8f9fb; border-color: #adb5bd; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card-concurso-icone .icone-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .card-concurso-icone .icone-wrap img { max-width: 100%; max-height: 100%; }
+    .card-concurso-icone .nome-concurso { font-weight: 500; line-height: 1.2; }
+    .card-concurso-icone.selecionado { border-color: #0d6efd !important; border-width: 2px !important; }
+    .badge-inativo-icone { position: absolute; top: 6px; right: 6px; font-size: 0.62rem; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link active"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+                <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Vincular matérias aos concursos</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <!-- ===================== TELA 1: GRADE DE CONCURSOS ===================== -->
+        <div id="etapa-grid">
+            <div class="d-flex justify-content-between align-items-center mb-2" style="max-width:720px;">
+                <label class="form-label small fw-semibold mb-0">Escolha um concurso</label>
+                <button id="btn-novo-concurso" class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Novo concurso</button>
+            </div>
+            <input type="text" id="input-filtro-concurso" class="form-control form-control-sm mb-2" placeholder="Filtrar por nome..." style="max-width:720px;">
+            <div id="grid-concursos-icone" class="row g-2" style="max-width:720px;"></div>
+            <div class="d-flex justify-content-between align-items-center mt-2" style="max-width:720px;">
+                <button type="button" id="btn-pag-concurso-anterior" class="btn btn-outline-secondary btn-sm" disabled>← Anterior</button>
+                <span class="small text-secondary" id="txt-pag-concurso"></span>
+                <button type="button" id="btn-pag-concurso-proxima" class="btn btn-outline-secondary btn-sm" disabled>Próxima →</button>
+            </div>
+        </div>
+
+        <!-- ===================== TELA 2: NOVO CONCURSO ===================== -->
+        <div id="etapa-novo-concurso" class="d-none">
+            <button type="button" id="btn-voltar-novo-concurso" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Voltar</button>
+
+            <div class="card-soft" style="max-width:500px;">
+                <h2 class="h6 fw-bold mb-2">Cadastrar novo concurso</h2>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Nome</label>
+                    <input type="text" id="novo-concurso-nome" class="form-control form-control-sm" placeholder="Ex: TRT 3ª Região 2027">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Banca</label>
+                    <select id="novo-concurso-banca" class="form-select form-select-sm"></select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Link da imagem/logo <span class="text-secondary fw-normal">(opcional)</span></label>
+                    <input type="url" id="novo-concurso-logo" class="form-control form-control-sm" placeholder="https://.../logo.png">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Data da prova <span class="text-secondary fw-normal">(opcional)</span></label>
+                    <input type="date" id="novo-concurso-data" class="form-control form-control-sm">
+                </div>
+                <div class="alert alert-info small py-2 mb-3">
+                    <i class="bi bi-info-circle"></i> O concurso nasce <strong>inativo</strong> — não aparece pra nenhum usuário até você ativar (dá pra fazer isso depois, na tela de cada concurso).
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="btn-salvar-concurso" class="btn btn-navy btn-sm">Salvar concurso</button>
+                    <button id="btn-cancelar-concurso" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                </div>
+                <div id="msg-novo-concurso" class="alert alert-danger small mt-2 d-none py-1"></div>
+            </div>
+        </div>
+
+        <!-- ===================== TELA 3: GERENCIAR CONCURSO SELECIONADO ===================== -->
+        <div id="etapa-concurso" class="d-none">
+            <button type="button" id="btn-voltar-concurso" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Voltar pra lista</button>
+            <h1 class="h5 fw-bold mb-3" id="titulo-concurso-selecionado"></h1>
+
+            <div class="card-soft mb-3" style="max-width:500px;">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <img id="preview-logo-concurso" src="" alt="" class="d-none" style="width:48px; height:48px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid #eee;">
+                    <i id="placeholder-logo-concurso" class="bi bi-mortarboard fs-3 text-secondary"></i>
+                    <div class="flex-fill">
+                        <label class="form-label small fw-semibold mb-1">Link da imagem/logo deste concurso</label>
+                        <div class="d-flex gap-2">
+                            <input type="url" id="input-logo-concurso" class="form-control form-control-sm" placeholder="https://.../logo.png">
+                            <button id="btn-salvar-logo-concurso" class="btn btn-outline-primary btn-sm text-nowrap">Salvar</button>
+                        </div>
+                        <div id="msg-logo-concurso" class="small mt-1"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between border-top pt-3">
+                    <div>
+                        <div class="small fw-semibold mb-0">Visibilidade</div>
+                        <div class="text-secondary small">Enquanto inativo, o concurso não aparece pra nenhum usuário.</div>
+                    </div>
+                    <button id="btn-toggle-ativo-concurso" class="btn btn-sm text-nowrap">—</button>
+                </div>
+            </div>
+
+            <div class="mb-3" style="max-width:500px;">
+                <label class="form-label small fw-semibold">Cargo <span class="text-secondary fw-normal">(matérias específicas desse cargo — ou "Geral" pra valer em todos)</span></label>
+                <div class="d-flex gap-2">
+                    <select id="select-cargo" class="form-select">
+                        <option value="">Geral (todos os cargos)</option>
+                    </select>
+                    <button id="btn-novo-cargo" class="btn btn-outline-primary text-nowrap"><i class="bi bi-plus-lg"></i> Novo cargo</button>
+                </div>
+            </div>
+
+            <div id="painel-novo-cargo" class="card-soft mb-3 d-none" style="max-width:500px;">
+                <h2 class="h6 fw-bold mb-2">Cadastrar novo cargo</h2>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Nome do cargo</label>
+                    <input type="text" id="novo-cargo-nome" class="form-control form-control-sm" placeholder="Ex: Analista Administrativo">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Nível de ensino</label>
+                    <select id="novo-cargo-nivel" class="form-select form-select-sm">
+                        <option value="">Não informado</option>
+                        <option value="primario">Primário</option>
+                        <option value="fundamental">Fundamental</option>
+                        <option value="medio">Médio</option>
+                        <option value="superior">Superior</option>
+                    </select>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Vagas</label>
+                        <input type="text" id="novo-cargo-vagas" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Salário</label>
+                        <input type="text" id="novo-cargo-salario" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="btn-salvar-cargo" class="btn btn-navy btn-sm">Salvar cargo</button>
+                    <button id="btn-cancelar-cargo" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card-soft">
+                        <h2 class="h6 fw-bold mb-2">Buscar / navegar e adicionar</h2>
+                        <div class="row g-2 mb-2">
+                            <div class="col-5">
+                                <select id="filtro-materia" class="form-select form-select-sm">
+                                    <option value="">Todas as matérias</option>
+                                </select>
+                            </div>
+                            <div class="col-7">
+                                <input type="text" id="busca-topico" class="form-control form-control-sm" placeholder="Digite 3+ letras para filtrar" autocomplete="off">
+                            </div>
+                        </div>
+                        <div id="arvore-topicos" class="border rounded p-2" style="max-height:400px; overflow-y:auto; background:#fff;"></div>
+                        <div class="form-text">Clique no + para adicionar ao concurso selecionado (adicionar uma matéria inclui ela inteira).</div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card-soft">
+                        <h2 class="h6 fw-bold mb-2">Já vinculados a este concurso</h2>
+                        <div id="lista-vinculados" style="max-height:440px; overflow-y:auto;"></div>
+                        <div id="vazio-vinculados" class="text-secondary small d-none">Nenhuma matéria vinculada ainda.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+let concursoAtual = null;
+let cargoAtual = null;
+let vinculadosMap = new Map(); // topico_id -> relevancia
+let listaConcursosAdmin = [];
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    const { data: concursos } = await supabaseClient.from('concursos').select('id, nome, logo_url, ativo').order('nome');
+    listaConcursosAdmin = concursos || [];
+    montarGridConcursos(listaConcursosAdmin);
+
+    const { data: bancasDisponiveis } = await supabaseClient.from('perfis_banca').select('id, nome').eq('ativo', true).order('nome');
+    const selectBancaNovo = document.getElementById('novo-concurso-banca');
+    (bancasDisponiveis || []).forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.nome;
+        selectBancaNovo.appendChild(opt);
+    });
+
+    const { data: materias } = await supabaseClient.rpc('arvore_filhos', { pai_id: null });
+    const selectMateria = document.getElementById('filtro-materia');
+    (materias || []).forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.nome;
+        selectMateria.appendChild(opt);
+    });
+
+    renderArvore();
+})();
+
+const CONCURSOS_POR_PAGINA = 20;
+let paginaConcursoAtual = 0;
+let listaConcursosFiltrada = [];
+
+function montarGridConcursos(lista) {
+    listaConcursosFiltrada = lista;
+    paginaConcursoAtual = 0;
+    renderPaginaConcursos();
+}
+
+function renderPaginaConcursos() {
+    const grid = document.getElementById('grid-concursos-icone');
+    grid.innerHTML = '';
+
+    if (!listaConcursosFiltrada.length) {
+        grid.innerHTML = '<div class="small text-secondary fst-italic">Nenhum concurso encontrado.</div>';
+        atualizarPaginacaoConcursos(0, 0);
+        return;
+    }
+
+    const inicio = paginaConcursoAtual * CONCURSOS_POR_PAGINA;
+    const pagina = listaConcursosFiltrada.slice(inicio, inicio + CONCURSOS_POR_PAGINA);
+
+    pagina.forEach(c => {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3 col-xl-2';
+        const iconeHtml = c.logo_url
+            ? `<img src="${escapeHtml(c.logo_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('i'), {className:'bi bi-mortarboard fs-2'}))">`
+            : '<i class="bi bi-mortarboard fs-2"></i>';
+        const badgeInativo = !c.ativo ? '<span class="badge text-bg-secondary badge-inativo-icone">inativo</span>' : '';
+        col.innerHTML = `
+            <button type="button" class="btn btn-outline-secondary w-100 card-concurso-icone ${c.id === concursoAtual ? 'selecionado' : ''}" data-id="${c.id}">
+                ${badgeInativo}
+                <div class="icone-wrap">${iconeHtml}</div>
+                <span class="small nome-concurso">${escapeHtml(c.nome)}</span>
+            </button>`;
+        col.querySelector('button').addEventListener('click', () => selecionarConcursoAdmin(c.id));
+        grid.appendChild(col);
+    });
+
+    atualizarPaginacaoConcursos(paginaConcursoAtual, listaConcursosFiltrada.length);
+}
+
+function atualizarPaginacaoConcursos(pagina, total) {
+    const totalPaginas = Math.max(1, Math.ceil(total / CONCURSOS_POR_PAGINA));
+    document.getElementById('txt-pag-concurso').textContent = total > 0 ? `Página ${pagina + 1} de ${totalPaginas} (${total} no total)` : '';
+    document.getElementById('btn-pag-concurso-anterior').disabled = pagina <= 0;
+    document.getElementById('btn-pag-concurso-proxima').disabled = pagina >= totalPaginas - 1;
+}
+
+document.getElementById('btn-pag-concurso-anterior').addEventListener('click', () => {
+    paginaConcursoAtual--;
+    renderPaginaConcursos();
+});
+document.getElementById('btn-pag-concurso-proxima').addEventListener('click', () => {
+    paginaConcursoAtual++;
+    renderPaginaConcursos();
+});
+
+document.getElementById('input-filtro-concurso').addEventListener('input', (e) => {
+    const termo = e.target.value.trim().toLowerCase();
+    const filtrados = termo ? listaConcursosAdmin.filter(c => c.nome.toLowerCase().includes(termo)) : listaConcursosAdmin;
+    montarGridConcursos(filtrados);
+});
+
+function mostrarEtapaConcurso(nome) {
+    ['etapa-grid', 'etapa-novo-concurso', 'etapa-concurso'].forEach(id => {
+        document.getElementById(id).classList.toggle('d-none', id !== nome);
+    });
+}
+
+function selecionarConcursoAdmin(concursoId) {
+    const item = listaConcursosAdmin.find(c => c.id === concursoId);
+    document.getElementById('titulo-concurso-selecionado').textContent = item ? item.nome : '';
+    mostrarEtapaConcurso('etapa-concurso');
+
+    carregarCargos(concursoId);
+    carregarConcurso(concursoId);
+    carregarLogoConcurso(concursoId);
+    carregarStatusAtivo(concursoId);
+}
+
+document.getElementById('btn-voltar-concurso').addEventListener('click', () => {
+    concursoAtual = null;
+    mostrarEtapaConcurso('etapa-grid');
+});
+
+async function carregarLogoConcurso(concursoId) {
+    const img = document.getElementById('preview-logo-concurso');
+    const placeholder = document.getElementById('placeholder-logo-concurso');
+    const input = document.getElementById('input-logo-concurso');
+    const msgEl = document.getElementById('msg-logo-concurso');
+    msgEl.textContent = '';
+
+    if (!concursoId) {
+        img.classList.add('d-none');
+        placeholder.classList.remove('d-none');
+        input.value = '';
+        return;
+    }
+
+    const { data } = await supabaseClient.from('concursos').select('logo_url').eq('id', concursoId).maybeSingle();
+    const url = (data && data.logo_url) || '';
+    input.value = url;
+
+    if (url) {
+        img.src = url;
+        img.classList.remove('d-none');
+        placeholder.classList.add('d-none');
+    } else {
+        img.classList.add('d-none');
+        placeholder.classList.remove('d-none');
+    }
+}
+
+document.getElementById('preview-logo-concurso').addEventListener('error', () => {
+    document.getElementById('preview-logo-concurso').classList.add('d-none');
+    document.getElementById('placeholder-logo-concurso').classList.remove('d-none');
+});
+
+document.getElementById('btn-salvar-logo-concurso').addEventListener('click', async () => {
+    const concursoId = concursoAtual;
+    const msgEl = document.getElementById('msg-logo-concurso');
+    if (!concursoId) { msgEl.className = 'small mt-1 text-danger'; msgEl.textContent = 'Escolha um concurso primeiro.'; return; }
+
+    const logoUrl = document.getElementById('input-logo-concurso').value.trim() || null;
+    const { error } = await supabaseClient.from('concursos').update({ logo_url: logoUrl }).eq('id', concursoId);
+
+    if (error) {
+        msgEl.className = 'small mt-1 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        return;
+    }
+
+    msgEl.className = 'small mt-1 text-success';
+    msgEl.textContent = 'Salvo ✓';
+    carregarLogoConcurso(concursoId);
+
+    // Atualiza o ícone na grade (caso a logo tenha mudado) sem perder o filtro atual
+    const item = listaConcursosAdmin.find(c => c.id === concursoId);
+    if (item) item.logo_url = logoUrl;
+    montarGridConcursos(listaConcursosAdmin);
+});
+
+async function carregarCargos(concursoId) {
+    const { data: cargos } = await supabaseClient.from('concurso_cargos').select('id, nome').eq('concurso_id', concursoId).order('nome');
+    const select = document.getElementById('select-cargo');
+    select.innerHTML = '<option value="">Geral (todos os cargos)</option>';
+    (cargos || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        select.appendChild(opt);
+    });
+    select.onchange = () => carregarConcurso(concursoAtual);
+}
+
+document.getElementById('btn-novo-cargo').addEventListener('click', () => {
+    document.getElementById('painel-novo-cargo').classList.remove('d-none');
+});
+document.getElementById('btn-cancelar-cargo').addEventListener('click', () => {
+    document.getElementById('painel-novo-cargo').classList.add('d-none');
+});
+document.getElementById('btn-salvar-cargo').addEventListener('click', async () => {
+    const concursoId = concursoAtual;
+    const nome = document.getElementById('novo-cargo-nome').value.trim();
+    if (!nome || !concursoId) { alert('Escolha um concurso e digite o nome do cargo.'); return; }
+
+    const { data: novoCargo, error } = await supabaseClient.from('concurso_cargos').insert({
+        concurso_id: concursoId,
+        nome,
+        nivel_ensino: document.getElementById('novo-cargo-nivel').value || null,
+        vagas: document.getElementById('novo-cargo-vagas').value || null,
+        salario: document.getElementById('novo-cargo-salario').value || null,
+    }).select().single();
+
+    if (error) { alert('Erro: ' + error.message); return; }
+
+    await carregarCargos(concursoId);
+    document.getElementById('select-cargo').value = novoCargo.id;
+    document.getElementById('painel-novo-cargo').classList.add('d-none');
+    document.getElementById('novo-cargo-nome').value = '';
+    carregarConcurso(concursoId);
+});
+
+async function carregarConcurso(concursoId) {
+    concursoAtual = concursoId;
+    cargoAtual = document.getElementById('select-cargo').value || null;
+
+    let query = supabaseClient.from('concurso_topicos').select('topico_id, relevancia').eq('concurso_id', concursoId);
+    query = cargoAtual ? query.eq('cargo_id', cargoAtual) : query.is('cargo_id', null);
+    const { data } = await query;
+
+    vinculadosMap = new Map((data || []).map(v => [v.topico_id, v.relevancia]));
+    await renderVinculados();
+}
+
+document.getElementById('btn-novo-concurso').addEventListener('click', () => {
+    mostrarEtapaConcurso('etapa-novo-concurso');
+});
+document.getElementById('btn-voltar-novo-concurso').addEventListener('click', () => {
+    document.getElementById('novo-concurso-nome').value = '';
+    document.getElementById('novo-concurso-logo').value = '';
+    document.getElementById('novo-concurso-data').value = '';
+    document.getElementById('msg-novo-concurso').classList.add('d-none');
+    mostrarEtapaConcurso('etapa-grid');
+});
+document.getElementById('btn-cancelar-concurso').addEventListener('click', () => {
+    document.getElementById('novo-concurso-nome').value = '';
+    document.getElementById('novo-concurso-logo').value = '';
+    document.getElementById('novo-concurso-data').value = '';
+    document.getElementById('msg-novo-concurso').classList.add('d-none');
+    mostrarEtapaConcurso('etapa-grid');
+});
+document.getElementById('btn-salvar-concurso').addEventListener('click', async () => {
+    const nome = document.getElementById('novo-concurso-nome').value.trim();
+    const bancaId = document.getElementById('novo-concurso-banca').value;
+    const logoUrl = document.getElementById('novo-concurso-logo').value.trim() || null;
+    const dataProva = document.getElementById('novo-concurso-data').value || null;
+    const msgEl = document.getElementById('msg-novo-concurso');
+
+    if (!nome) {
+        msgEl.textContent = 'Digite um nome para o concurso.';
+        msgEl.classList.remove('d-none');
+        return;
+    }
+
+    const { data: novoConcurso, error } = await supabaseClient
+        .from('concursos')
+        .insert({ nome, banca_id: bancaId || null, logo_url: logoUrl, data_prova: dataProva, ativo: false })
+        .select().single();
+
+    if (error) {
+        msgEl.textContent = 'Erro ao salvar: ' + error.message;
+        msgEl.classList.remove('d-none');
+        return;
+    }
+
+    listaConcursosAdmin.push(novoConcurso);
+    listaConcursosAdmin.sort((a, b) => a.nome.localeCompare(b.nome));
+    document.getElementById('input-filtro-concurso').value = '';
+    montarGridConcursos(listaConcursosAdmin);
+
+    document.getElementById('novo-concurso-nome').value = '';
+    document.getElementById('novo-concurso-logo').value = '';
+    document.getElementById('novo-concurso-data').value = '';
+    msgEl.classList.add('d-none');
+
+    selecionarConcursoAdmin(novoConcurso.id);
+});
+
+async function carregarStatusAtivo(concursoId) {
+    const { data } = await supabaseClient.from('concursos').select('ativo').eq('id', concursoId).maybeSingle();
+    const ativo = !!(data && data.ativo);
+    const btn = document.getElementById('btn-toggle-ativo-concurso');
+    btn.className = 'btn btn-sm text-nowrap ' + (ativo ? 'btn-success' : 'btn-outline-secondary');
+    btn.innerHTML = ativo ? '<i class="bi bi-eye"></i> Ativo — visível' : '<i class="bi bi-eye-slash"></i> Inativo — ativar';
+    btn.dataset.ativo = ativo ? 'true' : 'false';
+}
+
+document.getElementById('btn-toggle-ativo-concurso').addEventListener('click', async () => {
+    if (!concursoAtual) return;
+    const btn = document.getElementById('btn-toggle-ativo-concurso');
+    const novoValor = btn.dataset.ativo !== 'true';
+
+    const { error } = await supabaseClient.from('concursos').update({ ativo: novoValor }).eq('id', concursoAtual);
+    if (error) { alert('Erro: ' + error.message); return; }
+
+    const item = listaConcursosAdmin.find(c => c.id === concursoAtual);
+    if (item) item.ativo = novoValor;
+    montarGridConcursos(listaConcursosAdmin);
+    carregarStatusAtivo(concursoAtual);
+});
+
+async function renderVinculados() {
+    const container = document.getElementById('lista-vinculados');
+    container.innerHTML = '';
+    document.getElementById('vazio-vinculados').classList.toggle('d-none', vinculadosMap.size > 0);
+
+    for (const [id, relevancia] of vinculadosMap) {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: id });
+        const row = document.createElement('div');
+        row.className = 'd-flex justify-content-between align-items-center border-bottom py-1 gap-2';
+        row.innerHTML = `
+            <span class="small flex-fill">${caminho || id}</span>
+            <select class="form-select form-select-sm select-relevancia" data-id="${id}" style="width:110px;">
+                <option value="baixa" ${relevancia === 'baixa' ? 'selected' : ''}>Baixa</option>
+                <option value="media" ${relevancia === 'media' ? 'selected' : ''}>Média</option>
+                <option value="alta" ${relevancia === 'alta' ? 'selected' : ''}>Alta</option>
+            </select>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+        `;
+        row.querySelector('.select-relevancia').addEventListener('change', (e) => alterarRelevancia(id, e.target.value));
+        row.querySelector('button').addEventListener('click', () => removerVinculo(id));
+        container.appendChild(row);
+    }
+}
+
+function filtroPorCargo(query) {
+    return cargoAtual ? query.eq('cargo_id', cargoAtual) : query.is('cargo_id', null);
+}
+
+async function alterarRelevancia(id, novaRelevancia) {
+    let query = supabaseClient.from('concurso_topicos')
+        .update({ relevancia: novaRelevancia })
+        .eq('concurso_id', concursoAtual).eq('topico_id', id);
+    query = filtroPorCargo(query);
+    const { error } = await query;
+    if (error) { alert('Erro: ' + error.message); return; }
+    vinculadosMap.set(id, novaRelevancia);
+}
+
+async function adicionarVinculo(id) {
+    if (!concursoAtual) { alert('Escolha um concurso primeiro.'); return; }
+    if (vinculadosMap.has(id)) return;
+
+    vinculadosMap.set(id, 'media');
+
+    const { error } = await supabaseClient.from('concurso_topicos').insert({
+        concurso_id: concursoAtual, topico_id: id, relevancia: 'media', cargo_id: cargoAtual || null,
+    });
+
+    if (error) {
+        if (error.code === '23505') {
+            alert('Esse item já foi adicionado — parece que você clicou duas vezes 🙂');
+            await renderVinculados();
+            return;
+        }
+        vinculadosMap.delete(id);
+        alert('Erro: ' + error.message);
+        return;
+    }
+    await renderVinculados();
+}
+
+async function removerVinculo(id) {
+    let query = supabaseClient.from('concurso_topicos').delete().eq('concurso_id', concursoAtual).eq('topico_id', id);
+    query = filtroPorCargo(query);
+    await query;
+    vinculadosMap.delete(id);
+    await renderVinculados();
+}
+
+async function renderArvore() {
+    const container = document.getElementById('arvore-topicos');
+    container.innerHTML = '';
+    await carregarNivelArvore(null, container);
+}
+
+async function carregarNivelArvore(paiId, containerEl) {
+    const { data } = await supabaseClient.rpc('arvore_filhos', { pai_id: paiId });
+    const wrap = document.createElement('div');
+    wrap.className = 'ps-' + (paiId ? '3' : '0');
+    (data || []).forEach(item => {
+        const linha = document.createElement('div');
+        linha.className = 'd-flex align-items-center gap-1 py-1';
+
+        const btnExpandir = document.createElement('button');
+        btnExpandir.type = 'button';
+        btnExpandir.className = 'btn btn-sm btn-link p-0';
+        btnExpandir.style.width = '20px';
+        btnExpandir.innerHTML = item.tem_filhos ? '<i class="bi bi-caret-right-fill"></i>' : '';
+        btnExpandir.style.visibility = item.tem_filhos ? 'visible' : 'hidden';
+
+        const btnAdicionar = document.createElement('button');
+        btnAdicionar.type = 'button';
+        btnAdicionar.className = 'btn btn-sm btn-outline-primary py-0 px-1';
+        btnAdicionar.innerHTML = '<i class="bi bi-plus"></i>';
+        btnAdicionar.addEventListener('click', () => adicionarVinculo(item.id));
+
+        const label = document.createElement('span');
+        label.className = 'small';
+        label.textContent = item.nome;
+
+        let expandido = false;
+        let filhosContainer = null;
+        btnExpandir.addEventListener('click', async () => {
+            if (!item.tem_filhos) return;
+            if (!expandido) {
+                if (!filhosContainer) {
+                    filhosContainer = document.createElement('div');
+                    linha.parentElement.insertBefore(filhosContainer, linha.nextSibling);
+                    await carregarNivelArvore(item.id, filhosContainer);
+                } else {
+                    filhosContainer.style.display = '';
+                }
+                btnExpandir.innerHTML = '<i class="bi bi-caret-down-fill"></i>';
+            } else {
+                if (filhosContainer) filhosContainer.style.display = 'none';
+                btnExpandir.innerHTML = '<i class="bi bi-caret-right-fill"></i>';
+            }
+            expandido = !expandido;
+        });
+
+        linha.appendChild(btnExpandir);
+        linha.appendChild(btnAdicionar);
+        linha.appendChild(label);
+        wrap.appendChild(linha);
+    });
+    containerEl.appendChild(wrap);
+}
+
+async function renderResultadosFiltrados(termo) {
+    const container = document.getElementById('arvore-topicos');
+    container.innerHTML = '';
+    const materiaFiltro = document.getElementById('filtro-materia').value || null;
+    const { data, error } = await supabaseClient.rpc('buscar_topicos', {
+        termo, materia_id_filtro: materiaFiltro ? parseInt(materiaFiltro, 10) : null
+    });
+    if (error) { container.innerHTML = `<div class="text-danger small p-2">${error.message}</div>`; return; }
+    if (!data || data.length === 0) { container.innerHTML = '<div class="text-secondary small p-2">Nada encontrado.</div>'; return; }
+
+    data.forEach(t => {
+        const linha = document.createElement('div');
+        linha.className = 'd-flex align-items-start gap-2 py-1 border-bottom';
+        linha.innerHTML = `
+            <button class="btn btn-sm btn-outline-primary py-0 px-1"><i class="bi bi-plus"></i></button>
+            <div>
+                <div class="small fw-semibold">${t.nome}</div>
+                <div class="text-secondary" style="font-size:0.76rem;">${t.caminho}</div>
+            </div>`;
+        linha.querySelector('button').addEventListener('click', () => adicionarVinculo(t.id));
+        container.appendChild(linha);
+    });
+}
+
+let debounceTimer = null;
+document.getElementById('busca-topico').addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const termo = e.target.value.trim();
+    if (termo.length < 3) { renderArvore(); return; }
+    debounceTimer = setTimeout(() => renderResultadosFiltrados(termo), 350);
+});
+document.getElementById('filtro-materia').addEventListener('change', () => {
+    const termo = document.getElementById('busca-topico').value.trim();
+    if (termo.length >= 3) renderResultadosFiltrados(termo); else renderArvore();
+});
+</script>
+
+</body>
+</html>

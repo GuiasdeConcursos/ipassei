@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Relatório de Créditos — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link active"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+                <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Relatório de Créditos</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="row g-2 mb-3 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">De</label>
+                <input type="date" id="filtro-data-inicio" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Até</label>
+                <input type="date" id="filtro-data-fim" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Usuário</label>
+                <select id="filtro-usuario" class="form-select form-select-sm" style="min-width:220px;">
+                    <option value="">Todos os usuários</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Tipo</label>
+                <select id="filtro-tipo" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="compra_pix">Compra via PIX</option>
+                    <option value="gasto">Gasto</option>
+                    <option value="bonus_boas_vindas">Bônus de boas-vindas</option>
+                    <option value="credito_admin">Crédito de cortesia (admin)</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button id="btn-filtrar" class="btn btn-navy btn-sm">Filtrar</button>
+                <button id="btn-limpar" class="btn btn-outline-secondary btn-sm">Limpar</button>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-piggy-bank"></i> Arrecadado (R$)</div>
+                    <div class="h4 fw-bold mb-0" id="stat-arrecadado">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-coin"></i> Créditos comprados</div>
+                    <div class="h4 fw-bold mb-0" id="stat-comprados">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-dash-circle"></i> Créditos gastos</div>
+                    <div class="h4 fw-bold mb-0" id="stat-gastos">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-gift"></i> Cortesia + bônus</div>
+                    <div class="h4 fw-bold mb-0" id="stat-cortesia">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-soft mb-4">
+            <h2 class="h6 fw-bold mb-3"><i class="bi bi-bar-chart"></i> Créditos gastos por funcionalidade</h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr class="text-secondary small">
+                            <th>Funcionalidade</th>
+                            <th class="text-center">Nº de transações</th>
+                            <th class="text-center">Créditos gastos</th>
+                            <th class="text-center">% do total gasto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-por-acao"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-soft">
+            <h2 class="h6 fw-bold mb-3"><i class="bi bi-list-ul"></i> Transações <span class="text-secondary fw-normal" id="contador-transacoes"></span></h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr class="text-secondary small">
+                            <th>Data</th>
+                            <th>Usuário</th>
+                            <th>Tipo</th>
+                            <th>Ação</th>
+                            <th class="text-end">Valor</th>
+                            <th class="text-end">Saldo após</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-transacoes"></tbody>
+                </table>
+            </div>
+            <div id="aviso-limite" class="text-secondary small mt-2 d-none">Mostrando as 300 transações mais recentes dentro do filtro. Estreite o período para ver tudo.</div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+let usuariosMap = new Map(); // id -> {nome, email}
+
+const rotulosAcao = {
+    gerar_questao_inedita: 'Gerar questão inédita',
+    responder_existente: 'Responder questão existente',
+    ver_explicacao: 'Ver explicação detalhada',
+    ver_materia: 'Ver matéria explicativa',
+    revisar_questao_respondida: 'Revisar questão já respondida',
+};
+
+const rotulosTipo = {
+    compra_pix: 'Compra via PIX',
+    gasto: 'Gasto',
+    bonus_boas_vindas: 'Bônus de boas-vindas',
+    credito_admin: 'Crédito de cortesia (admin)',
+};
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    const { data: usuarios } = await supabaseClient.rpc('admin_listar_usuarios');
+    const selectUsuario = document.getElementById('filtro-usuario');
+    (usuarios || []).forEach(u => {
+        usuariosMap.set(u.id, { nome: u.nome, email: u.email });
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = (u.nome || u.email) + ' (' + u.email + ')';
+        selectUsuario.appendChild(opt);
+    });
+
+    await carregarRelatorio();
+})();
+
+document.getElementById('btn-filtrar').addEventListener('click', carregarRelatorio);
+document.getElementById('btn-limpar').addEventListener('click', () => {
+    document.getElementById('filtro-data-inicio').value = '';
+    document.getElementById('filtro-data-fim').value = '';
+    document.getElementById('filtro-usuario').value = '';
+    document.getElementById('filtro-tipo').value = '';
+    carregarRelatorio();
+});
+
+async function carregarRelatorio() {
+    const dataInicio = document.getElementById('filtro-data-inicio').value;
+    const dataFim = document.getElementById('filtro-data-fim').value;
+    const usuarioId = document.getElementById('filtro-usuario').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+
+    let query = supabaseClient.from('transacoes_creditos').select('*').order('criado_em', { ascending: false }).limit(300);
+    if (dataInicio) query = query.gte('criado_em', dataInicio + 'T00:00:00');
+    if (dataFim) query = query.lte('criado_em', dataFim + 'T23:59:59');
+    if (usuarioId) query = query.eq('usuario_id', usuarioId);
+    if (tipo) query = query.eq('tipo', tipo);
+
+    const { data: transacoes, error } = await query;
+    if (error) {
+        document.getElementById('tabela-transacoes').innerHTML = `<tr><td colspan="6" class="text-danger small">${error.message}</td></tr>`;
+        return;
+    }
+
+    document.getElementById('aviso-limite').classList.toggle('d-none', (transacoes || []).length < 300);
+    document.getElementById('contador-transacoes').textContent = `(${(transacoes || []).length})`;
+
+    renderCards(transacoes || []);
+    renderPorAcao(transacoes || []);
+    renderTabelaTransacoes(transacoes || []);
+
+    // Arrecadação em R$ real (via pagamentos_pix pagos), respeitando os mesmos filtros de data/usuário
+    let queryPix = supabaseClient.from('pagamentos_pix').select('valor_reais').eq('status', 'pago');
+    if (dataInicio) queryPix = queryPix.gte('pago_em', dataInicio + 'T00:00:00');
+    if (dataFim) queryPix = queryPix.lte('pago_em', dataFim + 'T23:59:59');
+    if (usuarioId) queryPix = queryPix.eq('usuario_id', usuarioId);
+    const { data: pagamentos } = await queryPix;
+    const totalReais = (pagamentos || []).reduce((soma, p) => soma + Number(p.valor_reais), 0);
+    document.getElementById('stat-arrecadado').textContent = 'R$ ' + totalReais.toFixed(2).replace('.', ',');
+}
+
+function renderCards(transacoes) {
+    const comprados = transacoes.filter(t => t.tipo === 'compra_pix').reduce((s, t) => s + Number(t.valor), 0);
+    const gastos = transacoes.filter(t => t.tipo === 'gasto').reduce((s, t) => s + Math.abs(Number(t.valor)), 0);
+    const cortesia = transacoes.filter(t => t.tipo === 'credito_admin' || t.tipo === 'bonus_boas_vindas').reduce((s, t) => s + Number(t.valor), 0);
+
+    document.getElementById('stat-comprados').textContent = comprados.toFixed(1);
+    document.getElementById('stat-gastos').textContent = gastos.toFixed(1);
+    document.getElementById('stat-cortesia').textContent = cortesia.toFixed(1);
+}
+
+function renderPorAcao(transacoes) {
+    const gastos = transacoes.filter(t => t.tipo === 'gasto');
+    const totalGasto = gastos.reduce((s, t) => s + Math.abs(Number(t.valor)), 0);
+
+    const porAcao = {};
+    gastos.forEach(t => {
+        const chave = t.acao || '(sem rótulo — transação antiga)';
+        if (!porAcao[chave]) porAcao[chave] = { qtd: 0, total: 0 };
+        porAcao[chave].qtd++;
+        porAcao[chave].total += Math.abs(Number(t.valor));
+    });
+
+    const linhas = Object.entries(porAcao).sort((a, b) => b[1].total - a[1].total);
+    const tbody = document.getElementById('tabela-por-acao');
+    tbody.innerHTML = '';
+
+    if (linhas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-secondary small">Nenhum gasto no período filtrado.</td></tr>';
+        return;
+    }
+
+    linhas.forEach(([acao, info]) => {
+        const pct = totalGasto > 0 ? (info.total / totalGasto * 100).toFixed(1) : '0.0';
+        tbody.innerHTML += `
+            <tr>
+                <td class="small">${rotulosAcao[acao] || acao}</td>
+                <td class="text-center small">${info.qtd}</td>
+                <td class="text-center small fw-semibold">${info.total.toFixed(1)}</td>
+                <td class="text-center small">${pct}%</td>
+            </tr>`;
+    });
+}
+
+function renderTabelaTransacoes(transacoes) {
+    const tbody = document.getElementById('tabela-transacoes');
+    tbody.innerHTML = '';
+
+    if (transacoes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-secondary small">Nenhuma transação encontrada.</td></tr>';
+        return;
+    }
+
+    transacoes.forEach(t => {
+        const usuario = usuariosMap.get(t.usuario_id);
+        const dataFormatada = new Date(t.criado_em).toLocaleString('pt-BR');
+        const corValor = Number(t.valor) >= 0 ? 'text-success' : 'text-danger';
+        tbody.innerHTML += `
+            <tr>
+                <td class="small text-secondary">${dataFormatada}</td>
+                <td class="small">${usuario ? (usuario.nome || usuario.email) : t.usuario_id}</td>
+                <td class="small">${rotulosTipo[t.tipo] || t.tipo}</td>
+                <td class="small">${t.acao ? (rotulosAcao[t.acao] || t.acao) : '—'}</td>
+                <td class="text-end small ${corValor} fw-semibold">${Number(t.valor) >= 0 ? '+' : ''}${t.valor}</td>
+                <td class="text-end small">${t.saldo_apos}</td>
+            </tr>`;
+    });
+}
+</script>
+
+</body>
+</html>

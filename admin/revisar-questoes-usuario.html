@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Revisar Questões (usuários) — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link active"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Revisar questões enviadas por usuários</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div id="contador" class="alert alert-light border small" style="max-width:700px;"></div>
+
+        <div id="lista-pendentes" class="d-flex flex-column gap-3"></div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    await carregarPendentes();
+})();
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+async function carregarPendentes() {
+    const { data: pendentes, error } = await supabaseClient
+        .from('questoes')
+        .select('id, enunciado, alternativas, resposta_correta, justificativa_curta, banca_id, dificuldade, autor_id, criado_em, perfis_banca(nome)')
+        .eq('origem', 'enviada_usuario')
+        .eq('ativa', false)
+        .order('criado_em', { ascending: true });
+
+    const container = document.getElementById('lista-pendentes');
+    container.innerHTML = '';
+
+    if (error) {
+        container.innerHTML = `<div class="text-danger small">${error.message}</div>`;
+        return;
+    }
+
+    document.getElementById('contador').textContent = `${(pendentes || []).length} questão(ões) pendente(s) de revisão.`;
+
+    if (!pendentes || pendentes.length === 0) return;
+
+    // Busca nome/email dos autores em lote
+    const idsAutores = [...new Set(pendentes.map(p => p.autor_id).filter(Boolean))];
+    const mapaAutores = new Map();
+    if (idsAutores.length > 0) {
+        const { data: usuarios } = await supabaseClient.rpc('admin_listar_usuarios');
+        (usuarios || []).forEach(u => { if (idsAutores.includes(u.id)) mapaAutores.set(u.id, u.nome || u.email); });
+    }
+
+    pendentes.forEach(q => renderCardPendente(q, mapaAutores.get(q.autor_id) || q.autor_id, container));
+}
+
+function renderCardPendente(q, nomeAutor, container) {
+    const card = document.createElement('div');
+    card.className = 'card-soft';
+    card.style.maxWidth = '700px';
+
+    const alternativasHtml = (q.alternativas || []).map(alt => {
+        const correta = alt.letra === q.resposta_correta;
+        return `<div class="small ${correta ? 'fw-bold text-success' : ''} mb-1">${correta ? '✓' : '&nbsp;&nbsp;'} ${escapeHtml(alt.letra)}) ${escapeHtml(alt.texto)}</div>`;
+    }).join('');
+
+    card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge text-bg-light border"><i class="bi bi-person"></i> ${escapeHtml(String(nomeAutor))}</span>
+            <div class="d-flex gap-1">
+                <span class="badge text-bg-light border">${q.perfis_banca?.nome || '—'}</span>
+                <span class="badge text-bg-light border">${q.dificuldade || '—'}</span>
+            </div>
+        </div>
+        <p class="small fw-semibold mb-2">${escapeHtml(q.enunciado)}</p>
+        <div class="mb-2">${alternativasHtml}</div>
+        ${q.justificativa_curta ? `<div class="alert alert-light border small mb-2"><strong>Justificativa enviada:</strong> ${escapeHtml(q.justificativa_curta)}</div>` : ''}
+
+        <label class="form-label small fw-semibold">Buscar e vincular o tópico real (3+ letras)</label>
+        <input type="text" class="form-control form-control-sm input-busca-topico mb-1" placeholder="Ex: Licitações, Crase, JPA...">
+        <div class="lista-sugestoes-topico list-group mb-1" style="max-height:150px; overflow-y:auto;"></div>
+        <div class="topico-selecionado text-success small mb-2"></div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-navy btn-sm btn-aprovar" disabled>Aprovar e ativar</button>
+            <button class="btn btn-outline-danger btn-sm btn-rejeitar">Rejeitar (excluir)</button>
+        </div>
+        <div class="msg small mt-2"></div>
+    `;
+
+    let topicoEscolhidoId = null;
+    let debounceTimer = null;
+    const buscaInput = card.querySelector('.input-busca-topico');
+
+    buscaInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const termo = e.target.value.trim();
+        const listaEl = card.querySelector('.lista-sugestoes-topico');
+        if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+        debounceTimer = setTimeout(async () => {
+            const { data: resultados } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+            listaEl.innerHTML = '';
+            (resultados || []).forEach(t => {
+                const opt = document.createElement('button');
+                opt.type = 'button';
+                opt.className = 'list-group-item list-group-item-action small py-1';
+                opt.innerHTML = `<strong>${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>`;
+                opt.addEventListener('click', () => {
+                    topicoEscolhidoId = t.id;
+                    card.querySelector('.topico-selecionado').textContent = '✓ ' + t.caminho;
+                    listaEl.innerHTML = '';
+                    buscaInput.value = '';
+                    card.querySelector('.btn-aprovar').disabled = false;
+                });
+                listaEl.appendChild(opt);
+            });
+        }, 350);
+    });
+
+    card.querySelector('.btn-aprovar').addEventListener('click', async () => {
+        const msgEl = card.querySelector('.msg');
+        const { error } = await supabaseClient
+            .from('questoes')
+            .update({ topico_id: topicoEscolhidoId, ativa: true })
+            .eq('id', q.id);
+        if (error) { msgEl.className = 'msg small mt-2 text-danger'; msgEl.textContent = error.message; return; }
+        card.style.opacity = '0.5';
+        msgEl.className = 'msg small mt-2 text-success';
+        msgEl.textContent = 'Aprovada e ativa ✓';
+        card.querySelectorAll('button, input').forEach(el => el.disabled = true);
+    });
+
+    card.querySelector('.btn-rejeitar').addEventListener('click', async () => {
+        if (!confirm('Excluir essa questão enviada? Isso não pode ser desfeito.')) return;
+        const { error } = await supabaseClient.from('questoes').delete().eq('id', q.id);
+        if (error) { card.querySelector('.msg').className = 'msg small mt-2 text-danger'; card.querySelector('.msg').textContent = error.message; return; }
+        card.remove();
+    });
+
+    container.appendChild(card);
+}
+</script>
+
+</body>
+</html>

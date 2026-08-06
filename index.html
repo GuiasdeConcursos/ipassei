@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iPassei — Bora colocar o pingo no i</title>
+<meta name="description" content="A plataforma de estudo pra quem tá estudando pra concurso público de verdade: questões, flashcards, guias, redação e um jeito de organizar tudo isso.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+    :root {
+        --navy: #205fc8;
+        --navy-dark: #17439a;
+        --navy-light: #3373df;
+        --paper: #e2e6ef;
+        --card: #ffffff;
+        --line: #d3d9e6;
+        --ink: #445156;
+        --ink-soft: #798590;
+        --accent2: #56b4be;
+        --success: #22a06b;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        margin: 0;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3 { font-family: 'Inter', system-ui, sans-serif; margin: 0; color: #16233d; font-weight: 800; }
+    p { margin: 0; }
+    a { color: inherit; text-decoration: none; }
+    .mono { text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 1.5rem; }
+    img { display: block; max-width: 100%; }
+    :focus-visible { outline: 3px solid var(--accent2); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+    }
+
+    /* ---------- NAV ---------- */
+    .nav {
+        position: sticky; top: 0; z-index: 40;
+        background: rgba(226, 230, 239, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 0; }
+    .marca { display: flex; align-items: center; gap: 0.6rem; }
+    .marca-selo { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: #fff; box-shadow: 0 0 0 2px var(--navy), 0 2px 8px rgba(32,95,200,0.2); flex-shrink: 0; }
+    .marca-selo img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.35); }
+    .marca-nome { font-weight: 800; font-size: 1.3rem; color: #16233d; }
+    .marca-nome .ponto { color: var(--navy); }
+    .nav-links { display: flex; align-items: center; gap: 1.75rem; }
+    .nav-links a.discreto { font-size: 0.92rem; font-weight: 600; color: var(--ink-soft); }
+    .nav-links a.discreto:hover { color: var(--navy); }
+    .btn-cta {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        background: var(--navy); color: #fff; font-weight: 700; font-size: 0.92rem;
+        padding: 0.65rem 1.3rem; border-radius: 999px; border: none; cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .btn-cta:hover { background: var(--navy-dark); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(23,67,154,0.3); }
+    .btn-cta.claro { background: #fff; color: var(--navy); }
+    .btn-cta.claro:hover { background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+    @media (max-width: 720px) { .nav-links a.discreto { display: none; } }
+
+    /* ---------- HERO ---------- */
+    .hero {
+        background: linear-gradient(160deg, var(--navy-light) 0%, var(--navy) 45%, var(--navy-dark) 100%);
+        color: #fff;
+        padding: 5.5rem 0 6rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 3rem; align-items: center; }
+    @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+    .eyebrow {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        font-size: 0.76rem; font-weight: 700; color: #cfe8eb;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        border: 1px solid rgba(207,232,235,0.35); border-radius: 999px;
+        padding: 0.4rem 0.9rem; margin-bottom: 1.6rem;
+    }
+    .eyebrow .bolinha { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); }
+    .hero h1 {
+        font-size: clamp(2.6rem, 5.4vw, 4.1rem);
+        line-height: 1.05; font-weight: 800; color: #fff; letter-spacing: -0.01em;
+    }
+    .hero h1 .stamp {
+        color: var(--accent2); font-weight: 900; font-style: italic;
+        display: inline-block; transform: rotate(-3deg);
+        animation: carimbar 0.6s cubic-bezier(.2,1.4,.4,1) 0.15s both;
+    }
+    @keyframes carimbar {
+        0% { opacity: 0; transform: rotate(-3deg) scale(2.2) translateY(-14px); filter: blur(2px); }
+        100% { opacity: 1; transform: rotate(-3deg) scale(1) translateY(0); filter: blur(0); }
+    }
+    .hero-sub {
+        font-size: 1.12rem; line-height: 1.6; color: rgba(255,255,255,0.82);
+        margin: 1.5rem 0 2.1rem; max-width: 480px;
+    }
+    .hero-ctas { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-bottom: 2.4rem; }
+    .btn-fantasma {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.3); color: #fff; font-weight: 700; font-size: 0.92rem;
+        padding: 0.65rem 1.3rem; border-radius: 999px; background: transparent; cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-fantasma:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.55); }
+    .hero-nota { font-size: 0.82rem; color: rgba(255,255,255,0.55); }
+
+    .hero-selo-wrap { position: relative; display: flex; justify-content: center; }
+    .hero-selo {
+        width: min(320px, 78vw); aspect-ratio: 1; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #ffffff, #f1f4fa 60%, #e2e6ef 100%);
+        box-shadow: 0 0 0 10px rgba(255,255,255,0.08), 0 30px 70px rgba(10,25,60,0.4), inset 0 0 0 1px rgba(255,255,255,0.4);
+        display: flex; align-items: center; justify-content: center; position: relative;
+        animation: flutuar 6s ease-in-out infinite;
+    }
+    @keyframes flutuar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .hero-selo img { width: 62%; }
+    .hero-selo::after {
+        content: ''; position: absolute; inset: 14px; border-radius: 50%;
+        border: 1.5px dashed rgba(32,95,200,0.35);
+    }
+    .hero-selo-legenda {
+        position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+        background: var(--accent2); color: #0c2a2d; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        font-size: 0.68rem; padding: 0.35rem 0.9rem; border-radius: 999px; white-space: nowrap;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    /* ---------- VALOR RÁPIDO ---------- */
+    .valor-tira { background: var(--card); border-bottom: 1px solid var(--line); padding: 2.2rem 0; }
+    .valor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+    @media (max-width: 860px) { .valor-grid { grid-template-columns: repeat(2, 1fr); } }
+    .valor-item { display: flex; gap: 0.8rem; align-items: flex-start; }
+    .valor-icone { color: var(--navy); font-size: 1.15rem; margin-top: 0.15rem; flex-shrink: 0; }
+    .valor-texto strong { display: block; font-size: 0.95rem; color: #16233d; }
+    .valor-texto span { font-size: 0.84rem; color: var(--ink-soft); }
+
+    /* ---------- CAPÍTULOS ---------- */
+    .capitulos { padding: 6rem 0 2rem; }
+    .capitulos-intro { max-width: 620px; margin: 0 auto 4rem; text-align: center; }
+    .capitulos-intro .mono { color: var(--navy); font-size: 0.78rem; display: block; margin-bottom: 0.9rem; }
+    .capitulos-intro h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 800; }
+    .capitulos-intro p { color: var(--ink-soft); margin-top: 1rem; font-size: 1.02rem; line-height: 1.6; }
+
+    .capitulo {
+        display: grid; grid-template-columns: 200px 1fr; gap: 2.5rem;
+        padding: 3rem 0; border-top: 1px solid var(--line);
+        align-items: start;
+    }
+    .capitulo:last-child { border-bottom: 1px solid var(--line); }
+    @media (max-width: 760px) { .capitulo { grid-template-columns: 1fr; gap: 1.2rem; } }
+
+    .capitulo-rotulo { position: sticky; top: 90px; }
+    .capitulo-num { font-size: 3.4rem; font-weight: 800; color: var(--line); line-height: 1; }
+    .capitulo-tag { font-size: 0.72rem; font-weight: 700; color: var(--navy); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.4rem; display: block; }
+
+    .capitulo-corpo h3 { font-size: 1.7rem; font-weight: 800; margin-bottom: 0.6rem; }
+    .capitulo-corpo > p.desc { color: var(--ink-soft); font-size: 1rem; line-height: 1.6; max-width: 560px; margin-bottom: 1.6rem; }
+    .feature-lista { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.9rem 1.6rem; }
+    @media (max-width: 560px) { .feature-lista { grid-template-columns: 1fr; } }
+    .feature-item { display: flex; gap: 0.65rem; align-items: flex-start; font-size: 0.92rem; line-height: 1.5; }
+    .feature-item .pingo { width: 7px; height: 7px; border-radius: 50%; background: var(--navy); margin-top: 0.5rem; flex-shrink: 0; }
+    .feature-item b { color: #16233d; }
+    .feature-item span { color: var(--ink-soft); }
+
+    /* ---------- CRÉDITOS ---------- */
+    .creditos { background: var(--navy-dark); color: #fff; padding: 5rem 0; margin-top: 3rem; }
+    .creditos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    @media (max-width: 820px) { .creditos-grid { grid-template-columns: 1fr; } }
+    .creditos h2 { color: #fff; font-size: clamp(1.7rem, 2.8vw, 2.2rem); font-weight: 800; margin-bottom: 1rem; }
+    .creditos p.desc { color: rgba(255,255,255,0.75); line-height: 1.65; font-size: 1rem; max-width: 460px; }
+    .creditos-lista { display: flex; flex-direction: column; gap: 1.1rem; }
+    .creditos-linha { display: flex; gap: 0.9rem; align-items: flex-start; padding: 1rem 1.2rem; background: rgba(255,255,255,0.06); border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); }
+    .creditos-linha i { color: var(--accent2); font-size: 1.1rem; margin-top: 0.1rem; }
+    .creditos-linha strong { display: block; font-size: 0.94rem; }
+    .creditos-linha span { font-size: 0.85rem; color: rgba(255,255,255,0.65); }
+
+    /* ---------- CTA FINAL ---------- */
+    .cta-final { padding: 6.5rem 0; text-align: center; position: relative; }
+    .cta-final::before {
+        content: ''; position: absolute; inset: 0; z-index: -1;
+        background: radial-gradient(ellipse at 50% 0%, rgba(32,95,200,0.08), transparent 60%);
+    }
+    .cta-final .mono { color: var(--navy); font-size: 0.78rem; display: block; margin-bottom: 1rem; }
+    .cta-final h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; max-width: 700px; margin: 0 auto 0.6rem; line-height: 1.15; }
+    .cta-final h2 .i-pingo { color: var(--navy); }
+    .cta-final p { color: var(--ink-soft); font-size: 1.05rem; margin: 1rem auto 2.2rem; max-width: 480px; }
+    .cta-final .btn-cta { font-size: 1rem; padding: 0.9rem 2rem; }
+
+    /* ---------- FOOTER ---------- */
+    footer { border-top: 1px solid var(--line); padding: 2.5rem 0; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-marca { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--ink-soft); }
+    .footer-marca .marca-selo { width: 22px; height: 22px; }
+    footer nav { display: flex; gap: 1.4rem; }
+    footer nav a { font-size: 0.85rem; color: var(--ink-soft); font-weight: 600; }
+    footer nav a:hover { color: var(--navy); }
+</style>
+</head>
+<body>
+
+<div class="nav">
+    <div class="container nav-inner">
+        <a href="index.html" class="marca">
+            <span class="marca-selo"><img src="assets/img/logo-i.png?g=1" alt=""></span>
+            <span class="marca-nome">iPassei<span class="ponto">.</span></span>
+        </a>
+        <div class="nav-links">
+            <a href="#capitulos" class="discreto">O que tem aqui</a>
+            <a href="#creditos" class="discreto">Como funciona</a>
+            <a href="login.html" class="discreto">Entrar</a>
+            <a href="login.html" class="btn-cta">Começar agora</a>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero">
+    <div class="container hero-grid">
+        <div>
+            <span class="eyebrow"><span class="bolinha"></span> pra quem estuda pra concurso público, pra valer</span>
+            <h1>Bora escrever<br><span class="stamp">APROVADO.</span></h1>
+            <p class="hero-sub">Questão de verdade, gerada na hora que você precisar. Flashcard que não deixa esquecer. Redação corrigida por competência. Tudo organizado num lugar só — sem aba aberta demais, sem post-it perdido.</p>
+            <div class="hero-ctas">
+                <a href="login.html" class="btn-cta claro"><i class="bi bi-arrow-right"></i> Criar minha conta</a>
+                <a href="login.html" class="btn-fantasma">Já estudo aqui</a>
+            </div>
+            <p class="hero-nota">Sem cartão de crédito pra começar a olhar a plataforma.</p>
+        </div>
+        <div class="hero-selo-wrap">
+            <div class="hero-selo">
+                <img src="assets/img/logo-i.png?g=1" alt="Logo do iPassei — uma gota d'água formando a letra i">
+                <span class="hero-selo-legenda">CONFERE O PINGO NO I</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== VALOR RÁPIDO ===================== -->
+<section class="valor-tira">
+    <div class="container valor-grid">
+        <div class="valor-item">
+            <i class="bi bi-robot valor-icone"></i>
+            <div class="valor-texto"><strong>Questão nova, na hora</strong><span>escolhe banca, matéria e assunto</span></div>
+        </div>
+        <div class="valor-item">
+            <i class="bi bi-collection valor-icone"></i>
+            <div class="valor-texto"><strong>Memorização de verdade</strong><span>flashcard, guia e referência, por assunto</span></div>
+        </div>
+        <div class="valor-item">
+            <i class="bi bi-pencil-square valor-icone"></i>
+            <div class="valor-texto"><strong>Redação com nota</strong><span>corrigida competência por competência</span></div>
+        </div>
+        <div class="valor-item">
+            <i class="bi bi-bullseye valor-icone"></i>
+            <div class="valor-texto"><strong>Seu ponto fraco, exposto</strong><span>o sistema te mostra onde focar</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== CAPÍTULOS ===================== -->
+<section class="capitulos" id="capitulos">
+    <div class="container">
+        <div class="capitulos-intro">
+            <span class="mono">SUMÁRIO</span>
+            <h2>É uma apostila. Só que ela responde.</h2>
+            <p>Organizamos tudo do jeito que você já está acostumado a estudar — por capítulo. A diferença é que cada um deles tem um sistema inteiro por trás.</p>
+        </div>
+
+        <!-- Capítulo 01 -->
+        <div class="capitulo">
+            <div class="capitulo-rotulo">
+                <span class="capitulo-num">01</span>
+                <span class="capitulo-tag">QUESTÕES</span>
+            </div>
+            <div class="capitulo-corpo">
+                <h3>Questão sem fim, do jeito que sua prova cobra</h3>
+                <p class="desc">Nada de decorar as mesmas 50 questões do PDF de sempre. Aqui a IA gera questão inédita na hora, no estilo exato da sua banca.</p>
+                <div class="feature-lista">
+                    <div class="feature-item"><span class="pingo"></span><span><b>Gerar por IA</b> escolhendo banca, matéria, assunto, dificuldade e nível de ensino.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Bolinha de origem</b> — verde se já tava no banco, roxa se acabou de ser gerada, pra você saber sempre o que tá respondendo.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Revisão focada</b> só nas questões que você errou, sem repetir o que você já manda bem.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Pontos fracos mapeados</b> automaticamente, pra você parar de estudar por "achismo".</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capítulo 02 -->
+        <div class="capitulo">
+            <div class="capitulo-rotulo">
+                <span class="capitulo-num">02</span>
+                <span class="capitulo-tag">MEMORIZAÇÃO</span>
+            </div>
+            <div class="capitulo-corpo">
+                <h3>Pra não escapar da sua cabeça no dia da prova</h3>
+                <p class="desc">Três jeitos de fixar conteúdo, cada um pro seu momento: ler com calma, revisar rápido, ou guardar aquele link bom que você sempre procura de novo.</p>
+                <div class="feature-lista">
+                    <div class="feature-item"><span class="pingo"></span><span><b>Guias de estudo</b> por assunto, geradas por IA ou escritas por você, com avaliação por estrelas de quem já usou.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Flashcards</b> com frente, verso, dica de prova e exemplo — modo estudo em cartão que vira em 3D.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Referências pessoais</b>: guarda o vídeo, artigo ou resumo que te ajudou, vinculado ao assunto certo.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Tudo aparece na hora</b> de responder questão — errou, o sistema já te oferece o flashcard daquele assunto.</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capítulo 03 -->
+        <div class="capitulo">
+            <div class="capitulo-rotulo">
+                <span class="capitulo-num">03</span>
+                <span class="capitulo-tag">REDAÇÃO</span>
+            </div>
+            <div class="capitulo-corpo">
+                <h3>A parte que mais assusta, com correção de verdade</h3>
+                <p class="desc">Sem "gostei, tá boa" genérico. Correção competência por competência, do jeito que a banca avalia de verdade.</p>
+                <div class="feature-lista">
+                    <div class="feature-item"><span class="pingo"></span><span><b>Correção por IA</b>, competência por competência, com nota e justificativa.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Temas gerados</b> na hora, ou você manda o seu próprio tema pra treinar.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Sugestões de repertório</b> antes de escrever, se travar na hora de começar.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Histórico completo</b> das suas redações, pra ver se sua nota tá subindo de verdade.</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capítulo 04 -->
+        <div class="capitulo">
+            <div class="capitulo-rotulo">
+                <span class="capitulo-num">04</span>
+                <span class="capitulo-tag">ORGANIZAÇÃO</span>
+            </div>
+            <div class="capitulo-corpo">
+                <h3>Um lugar só, pro concurso que você quer</h3>
+                <p class="desc">Escolhe o concurso e o cargo, e o sistema já filtra o conteúdo programático certo — sem você ter que ficar catando edital pra saber o que estudar.</p>
+                <div class="feature-lista">
+                    <div class="feature-item"><span class="pingo"></span><span><b>Estudar por concurso</b>: escolhe o cargo, e as matérias certas já aparecem.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Filtros salvos</b>, pra não montar a mesma seleção de novo toda vez.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Histórico e desempenho</b> num painel só, sem planilha paralela.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Edital do concurso</b> sempre à mão, dentro da própria plataforma.</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capítulo 05 -->
+        <div class="capitulo">
+            <div class="capitulo-rotulo">
+                <span class="capitulo-num">05</span>
+                <span class="capitulo-tag">COMUNIDADE</span>
+            </div>
+            <div class="capitulo-corpo">
+                <h3>Ninguém passa em concurso sozinho</h3>
+                <p class="desc">Manda aquela questão de prova real que você não achou em lugar nenhum, e ajuda quem tá estudando junto com você — e ainda ganha por isso.</p>
+                <div class="feature-lista">
+                    <div class="feature-item"><span class="pingo"></span><span><b>Envie uma questão</b> de prova real que caiu na sua mão, pro banco de todo mundo.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Programa de indicação</b>: manda seu link, e quando quem entrou faz a primeira compra, você escolhe — crédito na hora ou dinheiro todo mês.</span></div>
+                    <div class="feature-item"><span class="pingo"></span><span><b>Feedback direto</b> pra melhorar a plataforma com quem realmente usa.</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== CRÉDITOS ===================== -->
+<section class="creditos" id="creditos">
+    <div class="container creditos-grid">
+        <div>
+            <h2>Você só paga pelo que usa</h2>
+            <p class="desc">Sem assinatura mensal obrigatória prendendo você. O sistema funciona por créditos: cada ação (gerar questão, corrigir redação, gerar flashcard) consome uma quantidade fixa e transparente, que você vê antes de gastar.</p>
+        </div>
+        <div class="creditos-lista">
+            <div class="creditos-linha">
+                <i class="bi bi-qr-code"></i>
+                <div><strong>Recarrega via PIX</strong><span>compra o pacote de créditos que fizer sentido pra sua rotina de estudo</span></div>
+            </div>
+            <div class="creditos-linha">
+                <i class="bi bi-eye"></i>
+                <div><strong>Preço visível antes de gastar</strong><span>cada ação mostra quanto custa, sem surpresa depois</span></div>
+            </div>
+            <div class="creditos-linha">
+                <i class="bi bi-people"></i>
+                <div><strong>Indique e ganhe de volta</strong><span>quem você chama pra plataforma pode virar crédito ou dinheiro pra você</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== CTA FINAL ===================== -->
+<section class="cta-final">
+    <div class="container">
+        <span class="mono">ÚLTIMA LINHA DESSA PÁGINA</span>
+        <h2>Bora colocar o pingo no <span class="i-pingo">i</span>?</h2>
+        <p>Cria sua conta, escolhe seu concurso, e comece pela primeira questão. O resto do caminho a gente organiza junto com você.</p>
+        <a href="login.html" class="btn-cta"><i class="bi bi-arrow-right"></i> Criar minha conta agora</a>
+    </div>
+</section>
+
+<footer>
+    <div class="container footer-inner">
+        <div class="footer-marca">
+            <span class="marca-selo"><img src="assets/img/logo-i.png?g=1" alt=""></span>
+            iPassei — feito pra quem tá estudando pra valer.
+        </div>
+        <nav>
+            <a href="login.html">Entrar</a>
+            <a href="#capitulos">Funcionalidades</a>
+            <a href="#creditos">Créditos</a>
+        </nav>
+    </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Programa de Fidelidade — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .tab-fid-btn { border: none; background: none; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; color: #6c757d; border-bottom: 2px solid transparent; }
+    .tab-fid-btn.active { color: #212529; border-bottom-color: currentColor; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link active"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Programa de Fidelidade</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="border-bottom mb-3 d-flex gap-2 flex-wrap">
+            <button type="button" id="tab-btn-pendentes" class="tab-fid-btn active">Pedidos pendentes</button>
+            <button type="button" id="tab-btn-participantes" class="tab-fid-btn">Participantes aprovados</button>
+            <button type="button" id="tab-btn-niveis" class="tab-fid-btn">Níveis</button>
+            <button type="button" id="tab-btn-pagamentos" class="tab-fid-btn">Pagamentos em dinheiro</button>
+            <button type="button" id="tab-btn-pagos" class="tab-fid-btn">Pagos</button>
+        </div>
+
+        <!-- ===================== ABA: PENDENTES ===================== -->
+        <div id="aba-pendentes">
+            <div id="lista-pendentes" class="d-flex flex-column gap-2" style="max-width:700px;"></div>
+            <div id="vazio-pendentes" class="text-secondary small d-none">Nenhum pedido pendente.</div>
+        </div>
+
+        <!-- ===================== ABA: PARTICIPANTES ===================== -->
+        <div id="aba-participantes" class="d-none">
+            <div id="lista-participantes" class="d-flex flex-column gap-2" style="max-width:800px;"></div>
+            <div id="vazio-participantes" class="text-secondary small d-none">Nenhum participante aprovado ainda.</div>
+        </div>
+
+        <!-- ===================== ABA: NÍVEIS ===================== -->
+        <div id="aba-niveis" class="d-none">
+            <div class="card-soft mb-3" style="max-width:600px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-plus-lg"></i> Adicionar nível</h2>
+                <div class="row g-2">
+                    <div class="col-4">
+                        <label class="form-label small fw-semibold mb-1">Nível (nº)</label>
+                        <input type="number" min="1" id="input-novo-nivel" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-semibold mb-1">Indicações necessárias</label>
+                        <input type="number" min="0" id="input-novo-nivel-indicacoes" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-semibold mb-1">Percentual (%)</label>
+                        <input type="number" min="0" step="0.5" id="input-novo-nivel-percentual" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <button type="button" id="btn-adicionar-nivel" class="btn btn-navy btn-sm mt-2">Adicionar</button>
+                <div id="msg-novo-nivel" class="small mt-2"></div>
+            </div>
+
+            <div id="lista-niveis" class="d-flex flex-column gap-2" style="max-width:600px;"></div>
+        </div>
+
+        <!-- ===================== ABA: PAGAMENTOS EM DINHEIRO ===================== -->
+        <div id="aba-pagamentos" class="d-none">
+            <p class="text-secondary small mb-3" style="max-width:700px;">
+                Indicações onde o usuário escolheu receber em dinheiro, agrupadas por pessoa e mês. Pagar via PIX dispara uma transferência de verdade pelo Asaas — confere o valor e a chave antes de clicar. Se o usuário ainda não cadastrou chave PIX, use "Marcar como pago manualmente" depois de pagar por fora.
+            </p>
+            <div id="lista-pagamentos" class="d-flex flex-column gap-2" style="max-width:700px;"></div>
+            <div id="vazio-pagamentos" class="text-secondary small d-none">Nenhum pagamento em dinheiro pendente.</div>
+        </div>
+
+        <!-- ===================== ABA: PAGOS ===================== -->
+        <div id="aba-pagos" class="d-none">
+            <div id="lista-pagos" class="d-flex flex-column gap-2" style="max-width:700px;"></div>
+            <div id="vazio-pagos" class="text-secondary small d-none">Nenhum pagamento concluído ainda.</div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+// Lê a mensagem real de um erro de Edge Function — o cliente do Supabase
+// não preenche "data" em respostas não-2xx, o corpo de verdade fica em
+// error.context (precisa ler via .json(), é assíncrono).
+async function extrairMensagemErroAmigavel(error, data) {
+    let msg = data?.error || error?.message || 'Erro desconhecido';
+    if (error && error.context && typeof error.context.json === 'function') {
+        try {
+            const corpo = await error.context.json();
+            if (corpo?.error) msg = corpo.error;
+        } catch {
+            // corpo não era JSON — segue com a mensagem que já tem
+        }
+    }
+    return msg;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function formatarReais(valor) {
+    return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ',');
+}
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    await carregarPendentes();
+})();
+
+// ================= ABAS =================
+const abas = ['pendentes', 'participantes', 'niveis', 'pagamentos', 'pagos'];
+function trocarAba(nomeAtivo) {
+    abas.forEach(nome => {
+        document.getElementById(`aba-${nome}`).classList.toggle('d-none', nome !== nomeAtivo);
+        document.getElementById(`tab-btn-${nome}`).classList.toggle('active', nome === nomeAtivo);
+    });
+}
+document.getElementById('tab-btn-pendentes').addEventListener('click', () => { trocarAba('pendentes'); carregarPendentes(); });
+document.getElementById('tab-btn-participantes').addEventListener('click', () => { trocarAba('participantes'); carregarParticipantes(); });
+document.getElementById('tab-btn-niveis').addEventListener('click', () => { trocarAba('niveis'); carregarNiveis(); });
+document.getElementById('tab-btn-pagamentos').addEventListener('click', () => { trocarAba('pagamentos'); carregarPagamentos(); });
+document.getElementById('tab-btn-pagos').addEventListener('click', () => { trocarAba('pagos'); carregarPagos(); });
+
+async function buscarInfoUsuario(usuarioId) {
+    const { data } = await supabaseClient.from('usuarios_perfil').select('nome').eq('id', usuarioId).maybeSingle();
+    return data?.nome || usuarioId;
+}
+
+// ================= ABA: PENDENTES =================
+async function carregarPendentes() {
+    const { data, error } = await supabaseClient.from('fidelidade_participantes').select('*').eq('status', 'pendente').order('solicitado_em');
+    const container = document.getElementById('lista-pendentes');
+    const vazio = document.getElementById('vazio-pendentes');
+    container.innerHTML = '';
+
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+    if (!data || data.length === 0) { vazio.classList.remove('d-none'); return; }
+    vazio.classList.add('d-none');
+
+    for (const p of data) {
+        const nome = await buscarInfoUsuario(p.usuario_id);
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold">${escapeHtml(nome)}</div>
+                    <div class="small text-secondary">Pediu em ${new Date(p.solicitado_em).toLocaleString('pt-BR')}</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm btn-aprovar">Aprovar</button>
+                    <button class="btn btn-outline-danger btn-sm btn-rejeitar">Rejeitar</button>
+                </div>
+            </div>
+            <div class="small mt-2 msg"></div>
+        `;
+        card.querySelector('.btn-aprovar').addEventListener('click', () => atualizarParticipante(p.usuario_id, 'aprovado', card));
+        card.querySelector('.btn-rejeitar').addEventListener('click', () => atualizarParticipante(p.usuario_id, 'rejeitado', card));
+        container.appendChild(card);
+    }
+}
+
+async function atualizarParticipante(usuarioId, novoStatus, cardEl, vip, percentualVip) {
+    const { error } = await supabaseClient.rpc('admin_atualizar_fidelidade', {
+        usuario_id_param: usuarioId, novo_status: novoStatus ?? null, novo_vip: vip ?? null, novo_percentual_vip: percentualVip ?? null,
+    });
+    const msgEl = cardEl.querySelector('.msg');
+    if (error) { msgEl.className = 'small mt-2 text-danger msg'; msgEl.textContent = 'Erro: ' + error.message; return; }
+    msgEl.className = 'small mt-2 text-success msg';
+    msgEl.textContent = 'Atualizado ✓';
+    setTimeout(() => { carregarPendentes(); carregarParticipantes(); }, 700);
+}
+
+// ================= ABA: PARTICIPANTES APROVADOS =================
+async function carregarParticipantes() {
+    const { data, error } = await supabaseClient.from('fidelidade_participantes').select('*').in('status', ['aprovado', 'desabilitado']).order('aprovado_em', { ascending: false });
+    const container = document.getElementById('lista-participantes');
+    const vazio = document.getElementById('vazio-participantes');
+    container.innerHTML = '';
+
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+    if (!data || data.length === 0) { vazio.classList.remove('d-none'); return; }
+    vazio.classList.add('d-none');
+
+    for (const p of data) {
+        const nome = await buscarInfoUsuario(p.usuario_id);
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold">${escapeHtml(nome)} ${p.status === 'desabilitado' ? '<span class="badge text-bg-secondary">desabilitado</span>' : ''}</div>
+                    <div class="small text-secondary">Código: <code>${p.codigo_referencia}</code> · ${p.total_indicacoes_qualificadas} indicações qualificadas</div>
+                </div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <label class="d-flex align-items-center gap-1 small border rounded px-2 py-1" style="cursor:pointer;">
+                        <input type="checkbox" class="form-check-input m-0 check-vip" ${p.eh_vip ? 'checked' : ''}> VIP
+                    </label>
+                    <input type="number" step="0.5" min="0" class="form-control form-control-sm input-percentual-vip" style="width:90px;" placeholder="% VIP" value="${p.percentual_vip_override ?? ''}">
+                    <button class="btn btn-outline-primary btn-sm btn-salvar-vip">Salvar VIP</button>
+                    ${p.status === 'aprovado'
+                        ? '<button class="btn btn-outline-danger btn-sm btn-desabilitar">Desabilitar</button>'
+                        : '<button class="btn btn-outline-success btn-sm btn-reabilitar">Reabilitar</button>'}
+                </div>
+            </div>
+            <div class="small mt-2 msg"></div>
+        `;
+        card.querySelector('.btn-salvar-vip').addEventListener('click', () => {
+            const vip = card.querySelector('.check-vip').checked;
+            const percentualStr = card.querySelector('.input-percentual-vip').value.trim();
+            const percentual = percentualStr === '' ? null : Number(percentualStr);
+            atualizarParticipante(p.usuario_id, null, card, vip, percentual);
+        });
+        const btnToggleStatus = card.querySelector('.btn-desabilitar') || card.querySelector('.btn-reabilitar');
+        btnToggleStatus.addEventListener('click', () => {
+            atualizarParticipante(p.usuario_id, p.status === 'aprovado' ? 'desabilitado' : 'aprovado', card);
+        });
+        container.appendChild(card);
+    }
+}
+
+// ================= ABA: NÍVEIS =================
+async function carregarNiveis() {
+    const { data, error } = await supabaseClient.from('fidelidade_niveis').select('*').order('indicacoes_necessarias');
+    const container = document.getElementById('lista-niveis');
+    container.innerHTML = '';
+
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+
+    (data || []).forEach(n => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="fw-semibold">Nível ${n.nivel}</div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="small text-secondary">Indicações necessárias:</div>
+                    <input type="number" min="0" class="form-control form-control-sm input-edit-indicacoes" style="width:90px;" value="${n.indicacoes_necessarias}">
+                    <div class="small text-secondary">Percentual:</div>
+                    <input type="number" min="0" step="0.5" class="form-control form-control-sm input-edit-percentual" style="width:90px;" value="${n.percentual}">
+                    <button class="btn btn-outline-primary btn-sm btn-salvar-nivel">Salvar</button>
+                    <button class="btn btn-outline-danger btn-sm btn-excluir-nivel"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+            <div class="small mt-2 msg"></div>
+        `;
+        card.querySelector('.btn-salvar-nivel').addEventListener('click', async () => {
+            const msgEl = card.querySelector('.msg');
+            const indicacoes = Number(card.querySelector('.input-edit-indicacoes').value);
+            const percentual = Number(card.querySelector('.input-edit-percentual').value);
+            const { error } = await supabaseClient.from('fidelidade_niveis').update({ indicacoes_necessarias: indicacoes, percentual }).eq('nivel', n.nivel);
+            if (error) { msgEl.className = 'small mt-2 text-danger msg'; msgEl.textContent = 'Erro: ' + error.message; return; }
+            msgEl.className = 'small mt-2 text-success msg';
+            msgEl.textContent = 'Salvo ✓';
+        });
+        card.querySelector('.btn-excluir-nivel').addEventListener('click', async () => {
+            if (!confirm(`Excluir o Nível ${n.nivel}?`)) return;
+            const { error } = await supabaseClient.from('fidelidade_niveis').delete().eq('nivel', n.nivel);
+            if (error) { alert('Erro: ' + error.message); return; }
+            carregarNiveis();
+        });
+        container.appendChild(card);
+    });
+}
+
+document.getElementById('btn-adicionar-nivel').addEventListener('click', async () => {
+    const msgEl = document.getElementById('msg-novo-nivel');
+    const nivel = Number(document.getElementById('input-novo-nivel').value);
+    const indicacoes = Number(document.getElementById('input-novo-nivel-indicacoes').value);
+    const percentual = Number(document.getElementById('input-novo-nivel-percentual').value);
+
+    if (!nivel) { msgEl.className = 'small mt-2 text-danger'; msgEl.textContent = 'Preenche o número do nível.'; return; }
+
+    const { error } = await supabaseClient.from('fidelidade_niveis').insert({ nivel, indicacoes_necessarias: indicacoes || 0, percentual: percentual || 0 });
+    if (error) { msgEl.className = 'small mt-2 text-danger'; msgEl.textContent = 'Erro: ' + error.message; return; }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = 'Adicionado ✓';
+    document.getElementById('input-novo-nivel').value = '';
+    document.getElementById('input-novo-nivel-indicacoes').value = '';
+    document.getElementById('input-novo-nivel-percentual').value = '';
+    carregarNiveis();
+});
+
+// ================= ABA: PAGAMENTOS EM DINHEIRO =================
+async function carregarPagamentos() {
+    const { data, error } = await supabaseClient
+        .from('fidelidade_indicacoes')
+        .select('*')
+        .eq('modo_recebimento', 'dinheiro')
+        .eq('status_pagamento', 'pendente')
+        .order('indicador_id');
+
+    const container = document.getElementById('lista-pagamentos');
+    const vazio = document.getElementById('vazio-pagamentos');
+    container.innerHTML = '';
+
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+    if (!data || data.length === 0) { vazio.classList.remove('d-none'); return; }
+    vazio.classList.add('d-none');
+
+    const grupos = new Map();
+    data.forEach(ind => {
+        const chave = `${ind.indicador_id}|${ind.mes_referencia}`;
+        if (!grupos.has(chave)) grupos.set(chave, { indicador_id: ind.indicador_id, mes: ind.mes_referencia, itens: [] });
+        grupos.get(chave).itens.push(ind);
+    });
+
+    for (const grupo of grupos.values()) {
+        const nome = await buscarInfoUsuario(grupo.indicador_id);
+        const totalGrupo = grupo.itens.reduce((s, i) => s + Number(i.valor_ganho || 0), 0);
+
+        const { data: participante } = await supabaseClient
+            .from('fidelidade_participantes').select('chave_pix, tipo_chave_pix').eq('usuario_id', grupo.indicador_id).maybeSingle();
+        const temChavePix = participante?.chave_pix && participante?.tipo_chave_pix;
+
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold">${escapeHtml(nome)}</div>
+                    <div class="small text-secondary">Mês ${grupo.mes} · ${grupo.itens.length} indicação${grupo.itens.length === 1 ? '' : 'ões'} · total ${formatarReais(totalGrupo)}</div>
+                    <div class="small ${temChavePix ? 'text-secondary' : 'text-danger'}">
+                        ${temChavePix ? `Chave PIX (${escapeHtml(participante.tipo_chave_pix)}): ${escapeHtml(participante.chave_pix)}` : 'Usuário ainda não cadastrou chave PIX'}
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-success btn-sm btn-pagar-pix" ${temChavePix ? '' : 'disabled'}><i class="bi bi-send"></i> Pagar via PIX (Asaas)</button>
+                    <button class="btn btn-outline-secondary btn-sm btn-marcar-pago">Marcar como pago manualmente</button>
+                </div>
+            </div>
+            <div class="small mt-2 msg"></div>
+        `;
+
+        card.querySelector('.btn-pagar-pix').addEventListener('click', async () => {
+            if (!confirm(`Isso vai transferir ${formatarReais(totalGrupo)} de verdade pra chave PIX "${participante.chave_pix}", via Asaas. Confirma?`)) return;
+
+            const btn = card.querySelector('.btn-pagar-pix');
+            const msgEl = card.querySelector('.msg');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+
+            const { data: resultado, error: erroPix } = await supabaseClient.functions.invoke('pagar-fidelidade-pix', {
+                body: { indicador_id: grupo.indicador_id, mes_referencia: grupo.mes }
+            });
+
+            if (erroPix || resultado?.error) {
+                msgEl.className = 'small mt-2 text-danger msg';
+                msgEl.textContent = 'Erro: ' + await extrairMensagemErroAmigavel(erroPix, resultado);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send"></i> Pagar via PIX (Asaas)';
+                return;
+            }
+
+            msgEl.className = 'small mt-2 text-success msg';
+            msgEl.textContent = resultado.status === 'pago' ? 'Pago ✓' : 'Transferência enviada — status: processando (confere na aba "Pagos" daqui a pouco)';
+            setTimeout(carregarPagamentos, 1000);
+        });
+
+        card.querySelector('.btn-marcar-pago').addEventListener('click', async () => {
+            if (!confirm('Isso só REGISTRA como pago no sistema — não faz transferência nenhuma. Use só se você já pagou por fora. Confirma?')) return;
+            const btn = card.querySelector('.btn-marcar-pago');
+            const msgEl = card.querySelector('.msg');
+            btn.disabled = true;
+            for (const item of grupo.itens) {
+                await supabaseClient.rpc('admin_marcar_indicacao_paga', { indicacao_id_param: item.id });
+            }
+            msgEl.className = 'small mt-2 text-success msg';
+            msgEl.textContent = 'Marcado como pago ✓';
+            setTimeout(carregarPagamentos, 700);
+        });
+
+        container.appendChild(card);
+    }
+}
+
+// ================= ABA: PAGOS =================
+async function carregarPagos() {
+    const { data, error } = await supabaseClient.from('fidelidade_pagamentos').select('*').order('criado_em', { ascending: false });
+    const container = document.getElementById('lista-pagos');
+    const vazio = document.getElementById('vazio-pagos');
+    container.innerHTML = '';
+
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+    if (!data || data.length === 0) { vazio.classList.remove('d-none'); return; }
+    vazio.classList.add('d-none');
+
+    for (const p of data) {
+        const nome = await buscarInfoUsuario(p.indicador_id);
+
+        const badgeClasse = p.status === 'pago' ? 'text-bg-success' : p.status === 'falhou' ? 'text-bg-danger' : 'text-bg-warning text-dark';
+        const badgeTexto = p.status === 'pago' ? 'Pago' : p.status === 'falhou' ? 'Falhou' : 'Processando';
+
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold">${escapeHtml(nome)}</div>
+                    <div class="small text-secondary">
+                        Mês ${p.mes_referencia} · ${formatarReais(p.valor_total)}
+                        ${p.id_transferencia_asaas ? ` · Transferência: <code>${escapeHtml(p.id_transferencia_asaas)}</code>` : ''}
+                    </div>
+                    ${p.pago_em ? `<div class="small text-secondary">Pago em ${new Date(p.pago_em).toLocaleString('pt-BR')}</div>` : ''}
+                    ${p.erro_detalhe ? `<div class="small text-danger">Erro: ${escapeHtml(p.erro_detalhe.slice(0, 200))}</div>` : ''}
+                </div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="badge ${badgeClasse}">${badgeTexto}</span>
+                    ${p.comprovante_url ? `<a href="${escapeHtml(p.comprovante_url)}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-text"></i> Comprovante</a>` : ''}
+                    ${p.status === 'processando' ? '<button class="btn btn-outline-secondary btn-sm btn-verificar">Verificar status</button>' : ''}
+                </div>
+            </div>
+            <div class="small mt-2 msg"></div>
+        `;
+
+        const btnVerificar = card.querySelector('.btn-verificar');
+        if (btnVerificar) {
+            btnVerificar.addEventListener('click', async () => {
+                const msgEl = card.querySelector('.msg');
+                btnVerificar.disabled = true;
+                const { data: resultado, error: erroVerificar } = await supabaseClient.functions.invoke('verificar-pagamento-fidelidade', {
+                    body: { pagamento_id: p.id }
+                });
+                if (erroVerificar || resultado?.error) {
+                    msgEl.className = 'small mt-2 text-danger msg';
+                    msgEl.textContent = 'Erro: ' + await extrairMensagemErroAmigavel(erroVerificar, resultado);
+                    btnVerificar.disabled = false;
+                    return;
+                }
+                msgEl.className = 'small mt-2 text-success msg';
+                msgEl.textContent = 'Status atualizado ✓';
+                setTimeout(carregarPagos, 700);
+            });
+        }
+
+        container.appendChild(card);
+    }
+}
+</script>
+
+</body>
+</html>

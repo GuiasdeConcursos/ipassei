@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Testar IA — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link active"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+                <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Testar IA</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <p class="text-secondary small mb-3">Manda uma pergunta simples pra cada provedor cadastrado e mostra a resposta na hora — sem gastar crédito de nenhum usuário. Útil pra confirmar se a chave está certa e se o modelo ainda existe, antes de ativar de verdade.</p>
+
+        <div id="lista-provedores" class="d-flex flex-column gap-3"></div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    await carregarProvedores();
+})();
+
+async function carregarProvedores() {
+    const { data, error } = await supabaseClient.from('provedores_ia').select('*').order('nome');
+    const container = document.getElementById('lista-provedores');
+    container.innerHTML = '';
+
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+    if (!data || data.length === 0) { container.innerHTML = '<div class="text-secondary small">Nenhum provedor cadastrado ainda.</div>'; return; }
+
+    data.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h3 class="h6 fw-bold mb-1">
+                        ${p.nome}
+                        ${p.ativo ? '<span class="badge text-bg-success ms-1">Ativo</span>' : '<span class="badge text-bg-secondary ms-1">Inativo</span>'}
+                    </h3>
+                    <div class="small text-secondary">Modelo: <code>${p.identificador_modelo}</code> · Formato: ${p.tipo_api}</div>
+                </div>
+                <button class="btn btn-navy btn-sm btn-testar" data-id="${p.id}">Testar</button>
+            </div>
+            <div class="resultado-teste mt-3 d-none"></div>
+        `;
+        card.querySelector('.btn-testar').addEventListener('click', () => testarProvedor(p.id, card));
+        container.appendChild(card);
+    });
+}
+
+async function testarProvedor(provedorId, card) {
+    const btn = card.querySelector('.btn-testar');
+    const resultadoEl = card.querySelector('.resultado-teste');
+
+    btn.disabled = true;
+    btn.textContent = 'Testando...';
+    resultadoEl.classList.add('d-none');
+
+    const { data, error } = await supabaseClient.functions.invoke('testar-ia', { body: { provedor_id: provedorId } });
+
+    btn.disabled = false;
+    btn.textContent = 'Testar';
+
+    if (error || data?.error) {
+        resultadoEl.className = 'alert alert-danger small mt-3';
+        resultadoEl.textContent = 'Erro: ' + (data?.error || error.message);
+        resultadoEl.classList.remove('d-none');
+        return;
+    }
+
+    if (data.ok) {
+        resultadoEl.className = 'alert alert-success small mt-3';
+        resultadoEl.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Respondeu em ${data.tempo_ms} ms.<br>
+            <strong>Resposta:</strong> "${data.resposta}"`;
+    } else {
+        resultadoEl.className = 'alert alert-danger small mt-3';
+        resultadoEl.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> Não respondeu corretamente.<br>
+            <strong>Detalhe:</strong> ${JSON.stringify(data.detalhe).slice(0, 500)}`;
+    }
+    resultadoEl.classList.remove('d-none');
+}
+</script>
+
+</body>
+</html>

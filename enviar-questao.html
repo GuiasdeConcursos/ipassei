@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enviar questão — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link active"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+                <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Enviar questão</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div id="sem-permissao" class="alert alert-warning d-none" style="max-width:650px;">
+            <i class="bi bi-lock"></i> Você ainda não está autorizado a enviar questões próprias pro banco. Essa permissão é liberada pela administração — se tiver interesse, entra em contato.
+        </div>
+
+        <div id="painel-envio" class="d-none">
+
+            <div class="card-soft mb-3" style="max-width:650px;">
+                <h2 class="h6 fw-bold mb-1"><i class="bi bi-bank2"></i> 1. Escolha a banca</h2>
+                <p class="text-secondary small mb-2">Isso define o estilo que a IA vai seguir pra montar a questão — escolha antes de pedir o prompt.</p>
+                <select id="input-banca" class="form-select form-select-sm">
+                    <option value="">Selecione a banca...</option>
+                </select>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:650px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-magic"></i> 2. Prompt pra usar na sua IA</h2>
+                <p class="text-secondary small mb-2" id="txt-instrucao-prompt">
+                    Escolha a banca acima primeiro — o prompt já sai adaptado ao estilo dela.
+                </p>
+                <button type="button" id="btn-ver-prompt" class="btn btn-outline-secondary btn-sm" disabled>Ver prompt</button>
+                <div id="bloco-prompt" class="d-none mt-2">
+                    <textarea id="texto-prompt" class="form-control form-control-sm" rows="13" readonly style="font-family:monospace; font-size:0.78rem;"></textarea>
+                    <button type="button" id="btn-copiar-prompt" class="btn btn-outline-primary btn-sm mt-2">Copiar prompt</button>
+                    <span id="msg-copiado" class="small text-success ms-2 d-none">Copiado ✓</span>
+                </div>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:650px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-clipboard-check"></i> 3. Colar o JSON gerado pela IA</h2>
+                <p class="text-secondary small mb-2">Cola aqui a resposta da IA (o JSON inteiro) — o sistema confere o formato e já preenche o formulário abaixo sozinho.</p>
+                <textarea id="input-json-colado" class="form-control form-control-sm mb-2" rows="6" placeholder='{"enunciado": "...", "alternativas": [...], "resposta_correta": "C", "dificuldade": "medio", "justificativa_curta": "..."}'></textarea>
+                <button type="button" id="btn-validar-json" class="btn btn-outline-primary btn-sm">Validar e preencher formulário</button>
+                <div id="msg-validacao-json" class="small mt-2"></div>
+            </div>
+
+            <div class="card-soft mb-4" style="max-width:650px;">
+                <h1 class="h5 fw-bold mb-1">4. Conferir e enviar</h1>
+                <p class="text-secondary small mb-3">
+                    A questão fica <strong>em análise</strong> até a administração revisar, conferir o gabarito e vincular ao tópico certo — só depois disso ela entra pro banco de verdade. Você ganha crédito de recompensa toda vez que outra pessoa responder ela, depois de aprovada.
+                </p>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Banca selecionada</label>
+                    <div class="form-control form-control-sm bg-light text-secondary" id="txt-banca-mostrada">—</div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Dificuldade</label>
+                    <div class="form-control form-control-sm bg-light text-secondary" id="txt-dificuldade-mostrada">
+                        A IA define isso — cole e valide o JSON acima primeiro
+                    </div>
+                    <input type="hidden" id="input-dificuldade" value="">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Enunciado</label>
+                    <textarea id="input-enunciado" class="form-control form-control-sm" rows="4" maxlength="3000"></textarea>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Alternativas</label>
+                    <div id="lista-alternativas" class="d-flex flex-column gap-1"></div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Resposta correta</label>
+                    <select id="input-resposta-correta" class="form-select form-select-sm" style="max-width:120px;">
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Justificativa curta <span class="text-secondary fw-normal">(opcional)</span></label>
+                    <textarea id="input-justificativa" class="form-control form-control-sm" rows="2" maxlength="1000"></textarea>
+                </div>
+
+                <button id="btn-enviar" class="btn btn-gold w-100">Enviar pra análise</button>
+                <div id="msg-envio" class="small mt-2"></div>
+            </div>
+
+            <div class="card-soft" style="max-width:650px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-list-check"></i> Questões que você já enviou</h2>
+                <div id="lista-minhas-questoes" class="d-flex flex-column gap-2"></div>
+                <div id="vazio-minhas-questoes" class="text-secondary small d-none">Você ainda não enviou nenhuma questão.</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/supabase-config.js"></script>
+<script>
+let userId = null;
+const LETRAS = ['A', 'B', 'C', 'D', 'E'];
+const mapaBancas = new Map(); // banca_id -> { id, nome, prompt_estilo_questao }
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function montarPrompt(banca) {
+    const estiloBanca = banca.prompt_estilo_questao
+        ? `\nESTILO DA BANCA "${banca.nome}" (siga rigorosamente): ${banca.prompt_estilo_questao}\n`
+        : `\nBANCA: ${banca.nome} (sem estilo específico cadastrado — siga o padrão tradicional de bancas de concurso público brasileiro)\n`;
+
+    return `Crie UMA questão de múltipla escolha de concurso público brasileiro sobre o tema: [TEMA/ASSUNTO].
+${estiloBanca}
+A questão deve ser original (não copie de provas reais nem de material protegido por direitos autorais), objetiva, com enunciado claro, seguindo rigorosamente o estilo da banca acima.
+
+Responda SOMENTE com um JSON no formato EXATO abaixo — sem texto antes ou depois, sem markdown, sem crases:
+
+{
+  "enunciado": "texto do enunciado da questão",
+  "alternativas": [
+    {"letra": "A", "texto": "texto da alternativa A"},
+    {"letra": "B", "texto": "texto da alternativa B"},
+    {"letra": "C", "texto": "texto da alternativa C"},
+    {"letra": "D", "texto": "texto da alternativa D"},
+    {"letra": "E", "texto": "texto da alternativa E"}
+  ],
+  "resposta_correta": "C",
+  "dificuldade": "facil | medio | dificil",
+  "justificativa_curta": "explicação breve (2-3 frases) de por que essa é a resposta certa"
+}
+
+Regras obrigatórias:
+- Exatamente 5 alternativas, letras A, B, C, D, E (sem repetir, sem pular nenhuma).
+- "resposta_correta" tem que ser uma das 5 letras usadas.
+- "dificuldade" é você (a IA) quem classifica, com base na complexidade real da questão — não deixe fixo, avalie caso a caso: "facil" pra algo direto e básico, "medio" pra exigir raciocínio/interpretação, "dificil" pra pegar detalhes, exceções ou cruzar vários conceitos. Use só um dos 3 valores, exatamente como escrito (em minúsculo, sem acento).
+- Não invente estatísticas, leis ou dados falsos — se usar algum, tem que ser real e verificável.`;
+}
+
+document.getElementById('input-banca').addEventListener('change', (e) => {
+    const bancaId = e.target.value;
+    const btnPrompt = document.getElementById('btn-ver-prompt');
+    const txtInstrucao = document.getElementById('txt-instrucao-prompt');
+    const txtBancaMostrada = document.getElementById('txt-banca-mostrada');
+
+    document.getElementById('bloco-prompt').classList.add('d-none');
+
+    if (!bancaId) {
+        btnPrompt.disabled = true;
+        txtInstrucao.textContent = 'Escolha a banca acima primeiro — o prompt já sai adaptado ao estilo dela.';
+        txtBancaMostrada.textContent = '—';
+        return;
+    }
+
+    const banca = mapaBancas.get(bancaId);
+    btnPrompt.disabled = false;
+    txtInstrucao.textContent = `Prompt pronto pra banca ${banca.nome}. Use ele em qualquer IA (ChatGPT, Gemini, etc) — troque só o trecho [TEMA/ASSUNTO].`;
+    txtBancaMostrada.textContent = banca.nome;
+});
+
+document.getElementById('btn-ver-prompt').addEventListener('click', () => {
+    const bancaId = document.getElementById('input-banca').value;
+    if (!bancaId) return;
+    const banca = mapaBancas.get(bancaId);
+
+    const bloco = document.getElementById('bloco-prompt');
+    const jaAberto = !bloco.classList.contains('d-none');
+    bloco.classList.toggle('d-none');
+    if (!jaAberto) document.getElementById('texto-prompt').value = montarPrompt(banca);
+});
+
+document.getElementById('btn-copiar-prompt').addEventListener('click', async () => {
+    const bancaId = document.getElementById('input-banca').value;
+    if (!bancaId) return;
+    const banca = mapaBancas.get(bancaId);
+    await navigator.clipboard.writeText(montarPrompt(banca));
+    const msg = document.getElementById('msg-copiado');
+    msg.classList.remove('d-none');
+    setTimeout(() => msg.classList.add('d-none'), 2000);
+});
+
+// Mesma validação que a Edge Function faz no servidor — aqui é só pra dar
+// feedback na hora, sem gastar a chamada; o servidor confere de novo de qualquer jeito.
+function validarJsonQuestao(obj) {
+    if (!obj || typeof obj.enunciado !== 'string' || !obj.enunciado.trim()) {
+        return 'Falta o campo "enunciado" (ou está vazio).';
+    }
+    if (!Array.isArray(obj.alternativas) || obj.alternativas.length !== 5) {
+        return 'É preciso ter exatamente 5 alternativas em "alternativas".';
+    }
+    const letrasEncontradas = new Set();
+    for (const alt of obj.alternativas) {
+        if (!alt || typeof alt.letra !== 'string' || typeof alt.texto !== 'string' || !alt.texto.trim()) {
+            return 'Cada alternativa precisa ter "letra" e "texto" preenchidos.';
+        }
+        const letra = alt.letra.trim().toUpperCase();
+        if (!LETRAS.includes(letra)) return `Letra de alternativa inválida: "${alt.letra}".`;
+        letrasEncontradas.add(letra);
+    }
+    if (letrasEncontradas.size !== 5) return 'As 5 alternativas precisam ter letras diferentes (A a E).';
+    if (typeof obj.resposta_correta !== 'string' || !letrasEncontradas.has(obj.resposta_correta.trim().toUpperCase())) {
+        return '"resposta_correta" precisa ser uma das letras das alternativas.';
+    }
+    const DIFICULDADES_VALIDAS = ['facil', 'medio', 'dificil'];
+    if (typeof obj.dificuldade !== 'string' || !DIFICULDADES_VALIDAS.includes(obj.dificuldade.trim().toLowerCase())) {
+        return '"dificuldade" precisa ser exatamente "facil", "medio" ou "dificil" (a IA deveria ter classificado isso).';
+    }
+    return null;
+}
+
+document.getElementById('btn-validar-json').addEventListener('click', () => {
+    const msgEl = document.getElementById('msg-validacao-json');
+    const texto = document.getElementById('input-json-colado').value.trim();
+
+    if (!texto) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Cole o JSON gerado pela IA primeiro.';
+        return;
+    }
+
+    let obj;
+    try {
+        obj = JSON.parse(texto);
+    } catch {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'JSON inválido — confere se copiou a resposta inteira, sem cortar nada.';
+        return;
+    }
+
+    const erro = validarJsonQuestao(obj);
+    if (erro) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Formato incorreto: ' + erro;
+        return;
+    }
+
+    document.getElementById('input-enunciado').value = obj.enunciado.trim();
+    document.querySelectorAll('.input-alternativa').forEach(inp => {
+        const alt = obj.alternativas.find(a => a.letra.trim().toUpperCase() === inp.dataset.letra);
+        inp.value = alt ? alt.texto.trim() : '';
+    });
+    document.getElementById('input-resposta-correta').value = obj.resposta_correta.trim().toUpperCase();
+    document.getElementById('input-justificativa').value = obj.justificativa_curta ? String(obj.justificativa_curta).trim() : '';
+
+    const dificuldade = obj.dificuldade.trim().toLowerCase();
+    document.getElementById('input-dificuldade').value = dificuldade;
+    const rotulosDificuldade = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
+    document.getElementById('txt-dificuldade-mostrada').textContent = `${rotulosDificuldade[dificuldade]} (definida pela IA)`;
+    document.getElementById('txt-dificuldade-mostrada').classList.remove('text-secondary');
+    document.getElementById('txt-dificuldade-mostrada').classList.add('fw-semibold', 'text-dark');
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = 'Formato certo ✓ — formulário preenchido. Confere embaixo, escolhe a banca e envia.';
+});
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+    await atualizarSaldo();
+
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('pode_enviar_questoes').eq('id', userId).single();
+    if (!perfil || !perfil.pode_enviar_questoes) {
+        document.getElementById('sem-permissao').classList.remove('d-none');
+        return;
+    }
+    document.getElementById('painel-envio').classList.remove('d-none');
+
+    const { data: bancas } = await supabaseClient.from('perfis_banca').select('id, nome, prompt_estilo_questao').eq('ativo', true).order('nome');
+    const selectBanca = document.getElementById('input-banca');
+    (bancas || []).forEach(b => {
+        mapaBancas.set(b.id, b);
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.nome;
+        selectBanca.appendChild(opt);
+    });
+
+    montarCamposAlternativas();
+    await carregarMinhasQuestoes();
+})();
+
+async function atualizarSaldo() {
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+}
+
+function montarCamposAlternativas() {
+    const container = document.getElementById('lista-alternativas');
+    container.innerHTML = '';
+    LETRAS.forEach(letra => {
+        const div = document.createElement('div');
+        div.className = 'input-group input-group-sm';
+        div.innerHTML = `
+            <span class="input-group-text">${letra}</span>
+            <input type="text" class="form-control input-alternativa" data-letra="${letra}" maxlength="500">
+        `;
+        container.appendChild(div);
+    });
+}
+
+document.getElementById('btn-enviar').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-enviar');
+    const msgEl = document.getElementById('msg-envio');
+    msgEl.className = 'small mt-2';
+    msgEl.textContent = '';
+
+    const enunciado = document.getElementById('input-enunciado').value.trim();
+    const alternativas = Array.from(document.querySelectorAll('.input-alternativa')).map(inp => ({
+        letra: inp.dataset.letra,
+        texto: inp.value.trim(),
+    }));
+    const resposta_correta = document.getElementById('input-resposta-correta').value;
+    const banca_id = document.getElementById('input-banca').value;
+    const dificuldade = document.getElementById('input-dificuldade').value;
+    const justificativa_curta = document.getElementById('input-justificativa').value.trim() || null;
+
+    if (!enunciado) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Escreva o enunciado.';
+        return;
+    }
+    if (alternativas.some(a => !a.texto)) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Preencha as 5 alternativas.';
+        return;
+    }
+    if (!banca_id) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Escolha a banca.';
+        return;
+    }
+    if (!dificuldade) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Cole e valide o JSON da IA primeiro — é ele que define a dificuldade.';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+
+    const { data, error } = await supabaseClient.functions.invoke('enviar-questao-usuario', {
+        body: { enunciado, alternativas, resposta_correta, banca_id, dificuldade, justificativa_curta }
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Enviar pra análise';
+
+    if (error || data?.error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = data?.error || error.message;
+        return;
+    }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = data.mensagem;
+
+    document.getElementById('input-enunciado').value = '';
+    document.querySelectorAll('.input-alternativa').forEach(inp => inp.value = '');
+    document.getElementById('input-justificativa').value = '';
+    document.getElementById('input-dificuldade').value = '';
+    document.getElementById('txt-dificuldade-mostrada').textContent = 'A IA define isso — cole e valide o JSON acima primeiro';
+    document.getElementById('txt-dificuldade-mostrada').classList.add('text-secondary');
+    document.getElementById('txt-dificuldade-mostrada').classList.remove('fw-semibold', 'text-dark');
+    document.getElementById('input-json-colado').value = '';
+    document.getElementById('input-banca').value = '';
+    document.getElementById('input-banca').dispatchEvent(new Event('change'));
+
+    await carregarMinhasQuestoes();
+});
+
+async function carregarMinhasQuestoes() {
+    const listaEl = document.getElementById('lista-minhas-questoes');
+    const vazioEl = document.getElementById('vazio-minhas-questoes');
+
+    const { data: minhas } = await supabaseClient
+        .from('questoes')
+        .select('id, enunciado, ativa, criado_em, dificuldade, topico_id')
+        .eq('autor_id', userId)
+        .eq('origem', 'enviada_usuario')
+        .order('criado_em', { ascending: false })
+        .limit(30);
+
+    listaEl.innerHTML = '';
+
+    if (!minhas || minhas.length === 0) {
+        vazioEl.classList.remove('d-none');
+        return;
+    }
+    vazioEl.classList.add('d-none');
+
+    minhas.forEach(q => {
+        const dataFormatada = new Date(q.criado_em).toLocaleDateString('pt-BR');
+        const status = q.ativa
+            ? '<span class="badge text-bg-success">Aprovada e ativa</span>'
+            : '<span class="badge text-bg-secondary">Em análise</span>';
+        const div = document.createElement('div');
+        div.className = 'border rounded p-2';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                <span class="small text-secondary">${dataFormatada} · ${q.dificuldade || '—'}</span>
+                ${status}
+            </div>
+            <p class="small mb-0">${escapeHtml(q.enunciado.slice(0, 200))}${q.enunciado.length > 200 ? '…' : ''}</p>
+        `;
+        listaEl.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>

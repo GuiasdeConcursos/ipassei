@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudar por concurso — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+    .card-concurso-icone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; min-height: 110px; text-align: center; }
+    .bolinha-origem { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; cursor: help; }
+    .bolinha-origem.banco { background: #28a745; }
+    .bolinha-origem.ia { background: #6f42c1; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link active"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+        <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Estudar por concurso</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- ===================== ETAPA 1: ESCOLHER CONCURSO POR ÍCONE ===================== -->
+        <div id="etapa-concurso-icone">
+            <div class="card-soft mb-3" style="max-width:720px;">
+                <h1 class="h5 fw-bold mb-1">Pra qual concurso você está estudando?</h1>
+                <p class="text-secondary small mb-3">Escolha o concurso — a banca e as matérias já vêm certas depois.</p>
+                <input type="text" id="input-filtro-concurso" class="form-control form-control-sm mb-3" placeholder="Filtrar por nome...">
+                <div id="grid-concursos-icone" class="row g-3"></div>
+            </div>
+        </div>
+
+        <!-- ===================== ETAPA 2: FILTROS SALVOS DESSE CONCURSO ===================== -->
+        <div id="etapa-filtros-concurso" class="d-none">
+            <button type="button" id="btn-trocar-concurso-filtros" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Trocar concurso
+            </button>
+            <h1 class="h5 fw-bold mb-1" id="titulo-concurso-filtros"></h1>
+            <p class="text-secondary small mb-3">Seus filtros salvos pra esse concurso — ou monte uma seleção nova.</p>
+
+            <div id="lista-filtros-concurso" class="d-flex flex-column gap-2 mb-3" style="max-width:640px;"></div>
+            <div id="vazio-filtros-concurso" class="text-secondary small mb-3 d-none">Você ainda não salvou nenhum filtro pra esse concurso.</div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" id="btn-ir-configurar" class="btn btn-navy">
+                    <i class="bi bi-sliders"></i> Criar questões (montar seleção nova)
+                </button>
+                <button type="button" id="btn-ir-flashcards-cargo" class="btn btn-outline-info">
+                    <i class="bi bi-collection"></i> Estudar com Flashcards
+                </button>
+            </div>
+        </div>
+
+        <!-- ===================== FLASHCARDS: escolher cargo ===================== -->
+        <div id="etapa-flashcards-cargo" class="d-none" style="max-width:640px;">
+            <button type="button" id="btn-voltar-flashcards-cargo" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </button>
+            <h1 class="h5 fw-bold mb-3">Estudar com Flashcards</h1>
+
+            <div class="card-soft">
+                <label class="form-label small fw-semibold">Cargo</label>
+                <select id="select-cargo-flashcards" class="form-select mb-3">
+                    <option value="">Geral (sem cargo específico)</option>
+                </select>
+                <button type="button" id="btn-ver-conteudo-flashcards" class="btn btn-navy">Ver conteúdo programático</button>
+            </div>
+        </div>
+
+        <!-- ===================== FLASHCARDS: lista de tópicos com flashcard ===================== -->
+        <div id="etapa-flashcards-lista" class="d-none" style="max-width:700px;">
+            <button type="button" id="btn-voltar-flashcards-lista" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </button>
+            <h1 class="h5 fw-bold mb-1">Conteúdo programático com flashcards</h1>
+            <p class="text-secondary small mb-3">Só aparecem aqui os assuntos que já têm pelo menos um flashcard seu.</p>
+
+            <div id="lista-topicos-flashcards" class="d-flex flex-column gap-2"></div>
+            <div id="vazio-topicos-flashcards" class="text-secondary small d-none">Nenhum assunto do conteúdo programático desse concurso/cargo tem flashcard ainda. Cria alguns em "Flashcards" no menu, ou pela tela de resolução de questões.</div>
+        </div>
+
+        <!-- ===================== ETAPA 3: CARGO, MATÉRIAS E OPÇÕES ===================== -->
+        <div id="tela-selecao" class="card-soft d-none" style="max-width:640px;">
+            <button type="button" id="btn-trocar-concurso" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </button>
+            <h1 class="h5 fw-bold mb-1" id="titulo-concurso-escolhido"></h1>
+            <p class="text-secondary small mb-3">As matérias abaixo foram selecionadas para esse concurso.</p>
+
+            <div class="mb-3 d-none" id="bloco-cargo">
+                <label class="form-label small fw-semibold">Cargo <span class="text-secondary fw-normal">(as matérias mudam conforme o cargo)</span></label>
+                <select id="select-cargo" class="form-select">
+                    <option value="">Geral (sem cargo específico)</option>
+                </select>
+                <div class="form-text" id="texto-nivel-implicito"></div>
+            </div>
+
+            <div id="sem-materias" class="alert alert-warning small d-none">
+                Esse concurso ainda não tem matérias vinculadas. Fale com a administração do sistema.
+            </div>
+
+            <div id="bloco-materias" class="mb-3 d-none">
+                <label class="form-label small fw-semibold d-block">Matérias deste concurso <span class="text-secondary fw-normal">(marque as que quer treinar)</span></label>
+                <div class="d-flex justify-content-end mb-1">
+                    <button id="btn-marcar-todas" class="btn btn-link btn-sm p-0">Marcar todas</button>
+                </div>
+                <div id="lista-materias-concurso" class="border rounded p-2" style="max-height:260px; overflow-y:auto; background:#fff;"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Quantidade de questões</label>
+                <input type="number" id="input-quantidade" class="form-control" value="5" min="1" max="20">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Dificuldade</label>
+                <select id="select-dificuldade" class="form-select">
+                    <option value="facil">Fácil</option>
+                    <option value="medio" selected>Médio</option>
+                    <option value="dificil">Difícil</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold d-block">Modo</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="modo" id="modo-existente" value="existente" checked>
+                    <label class="btn btn-outline-secondary btn-sm" for="modo-existente">Já existente (mais barato)</label>
+                    <input type="radio" class="btn-check" name="modo" id="modo-inedita" value="inedita">
+                    <label class="btn btn-outline-secondary btn-sm" for="modo-inedita">Inédita (gera com IA)</label>
+                </div>
+            </div>
+
+            <div class="card-soft mb-4" style="background:#f8f9fa;">
+                <button type="button" id="btn-toggle-salvar-filtro" class="btn btn-link btn-sm p-0 text-decoration-none">
+                    <i class="bi bi-bookmark-plus"></i> Salvar essa seleção como filtro
+                </button>
+                <div id="bloco-salvar-filtro" class="d-none mt-2">
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Nome do filtro</label>
+                        <input type="text" id="input-nome-filtro" class="form-control form-control-sm" placeholder="Ex: CESAMA - Assistente Administrativo - foco alta">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Descrição <span class="text-secondary fw-normal">(opcional)</span></label>
+                        <input type="text" id="input-descricao-filtro" class="form-control form-control-sm">
+                    </div>
+                    <button id="btn-salvar-filtro" class="btn btn-outline-primary btn-sm">Salvar filtro</button>
+                    <div id="msg-salvar-filtro" class="small mt-2"></div>
+                </div>
+            </div>
+
+            <div id="msg" class="alert d-none"></div>
+
+            <button id="btn-gerar" class="btn btn-gold w-100" disabled>Buscar questão</button>
+        </div>
+
+        <div id="tela-questao" class="d-none" style="max-width:640px;">
+            <div class="card-soft">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge text-bg-light border" id="badge-topico"></span>
+                    <div class="d-flex gap-1">
+                        <span class="bolinha-origem" id="badge-origem" title=""></span>
+                        <span class="badge text-bg-light border" id="badge-nivel-ensino"></span>
+                        <span class="badge text-bg-light border" id="badge-dificuldade"></span>
+                        <span class="badge text-bg-success" id="badge-acertos"><i class="bi bi-check-lg"></i> 0</span>
+                        <span class="badge text-bg-danger" id="badge-erros"><i class="bi bi-x-lg"></i> 0</span>
+                        <span class="badge text-bg-secondary" id="badge-cronometro"><i class="bi bi-stopwatch"></i> 00:00</span>
+                    </div>
+                </div>
+                <div class="text-secondary small mb-2" id="badge-caminho"></div>
+                <p class="fw-semibold" id="questao-enunciado"></p>
+                <div id="questao-alternativas" class="d-flex flex-column gap-2 mb-3"></div>
+                <div id="questao-resultado" class="alert d-none"></div>
+                <button id="btn-estudar-flashcards-erro" class="btn btn-primary btn-sm mb-2 d-none"><i class="bi bi-collection"></i> Estudar com Flashcards desse assunto</button>
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    <button id="btn-ver-guias" class="btn btn-outline-success btn-sm"><i class="bi bi-journal-bookmark"></i> Ver guias desse assunto</button>
+                    <button id="btn-ver-referencias" class="btn btn-outline-info btn-sm"><i class="bi bi-link-45deg"></i> Minhas referências</button>
+                    <button id="btn-explicacao" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-lightbulb"></i> Ver explicação detalhada</button>
+                    <button id="btn-materia" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-book"></i> Ver matéria explicativa</button>
+                    <button id="btn-reportar-erro" class="btn btn-outline-danger btn-sm"><i class="bi bi-flag"></i> Reportar erro nessa questão</button>
+                </div>
+
+                <div id="painel-guias-inline" class="d-none mb-3">
+                    <div class="d-flex flex-column gap-3" id="lista-guias-inline" style="max-height:420px; overflow-y:auto;"></div>
+                    <div id="vazio-guias-inline" class="text-secondary small d-none">Ainda não tem nenhuma guia pra esse assunto.</div>
+                </div>
+
+                <div id="painel-referencias-inline" class="d-none mb-3" style="max-height:420px; overflow-y:auto;"></div>
+
+                <div id="conteudo-extra" class="alert alert-light border small d-none"></div>
+
+                <div id="painel-reportar" class="d-none border rounded p-2 mb-2" style="background:#fff;">
+                    <label class="form-label small fw-semibold mb-1">O que está errado?</label>
+                    <select id="select-motivo-reporte" class="form-select form-select-sm mb-2">
+                        <option value="resposta_errada">A resposta marcada como correta está errada</option>
+                        <option value="enunciado_erro">O enunciado tem erro/está confuso</option>
+                        <option value="alternativa_erro">Alguma alternativa está errada, duplicada ou mal escrita</option>
+                        <option value="outro">Outro problema</option>
+                    </select>
+                    <textarea id="input-comentario-reporte" class="form-control form-control-sm mb-2" rows="2" placeholder="Detalhe o problema (opcional, mas ajuda muito)"></textarea>
+                    <div class="d-flex gap-2">
+                        <button id="btn-enviar-reporte" class="btn btn-outline-danger btn-sm">Enviar reporte</button>
+                        <button id="btn-cancelar-reporte" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                    </div>
+                    <div id="msg-reporte" class="small mt-2"></div>
+                </div>
+
+                <button id="btn-nova" class="btn btn-outline-secondary btn-sm mt-2 d-none">← Voltar para seleção</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/supabase-config.js"></script>
+<script src="assets/guias-widget.js"></script>
+<script src="assets/referencias-widget.js?v=3"></script>
+<script src="assets/flashcards-widget.js?v=3"></script>
+<script>
+// Lê a mensagem real de um erro de Edge Function (o cliente do Supabase não
+// preenche "data" em respostas não-2xx — o corpo de verdade fica em
+// error.context). Detecta especificamente falta de crédito (HTTP 402) e
+// mostra uma mensagem clara com link, em vez do erro técnico genérico.
+async function mostrarErroBusca(msgEl, error, data) {
+    let msg = data?.error || error?.message || 'Erro desconhecido';
+    let status = null;
+
+    if (error && error.context) {
+        status = error.context.status;
+        if (typeof error.context.json === 'function') {
+            try {
+                const corpo = await error.context.json();
+                if (corpo?.error) msg = corpo.error;
+            } catch {
+                // corpo não era JSON — segue com a mensagem que já tem
+            }
+        }
+    }
+
+    const semCredito = status === 402 || /crédito|credito/i.test(msg);
+
+    if (semCredito) {
+        msgEl.innerHTML = '<i class="bi bi-coin"></i> Você não tem créditos suficientes pra isso. <a href="creditos.html" class="alert-link">Adicionar créditos</a>.';
+    } else {
+        msgEl.textContent = msg;
+    }
+    msgEl.className = 'alert alert-danger';
+    msgEl.classList.remove('d-none');
+}
+
+// Versão em texto puro (sem HTML), pra usar em alert() nos lugares que
+// ainda usam alert nativo em vez de uma caixa de mensagem na tela.
+async function extrairMensagemErroAmigavel(error, data) {
+    let msg = data?.error || error?.message || 'Erro desconhecido';
+    let status = null;
+
+    if (error && error.context) {
+        status = error.context.status;
+        if (typeof error.context.json === 'function') {
+            try {
+                const corpo = await error.context.json();
+                if (corpo?.error) msg = corpo.error;
+            } catch {}
+        }
+    }
+
+    const semCredito = status === 402 || /crédito|credito/i.test(msg);
+    return semCredito
+        ? 'Você não tem créditos suficientes pra isso. Vá em "Adicionar créditos" no topo da tela pra comprar mais.'
+        : msg;
+}
+
+let userId = null;
+let bancaDoConcurso = null;
+let concursoSelecionado = null; // { id, nome }
+let listaConcursos = [];
+let mapaTopicosCarregados = new Map(); // topico_id -> caminho/nome, pra montar o filtro salvo certinho
+let resultadosLote = [];
+let indiceAtual = 0;
+let contadorAcertos = 0;
+let contadorErros = 0;
+let questaoExibidaAtual = null;
+let tempoInicio = null;
+let cronometroInterval = null;
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+    await atualizarSaldo();
+
+    const { data: concursos } = await supabaseClient.from('concursos').select('id, nome, banca_id, logo_url').eq('ativo', true).order('nome');
+    listaConcursos = concursos || [];
+    montarGridConcursos(listaConcursos);
+})();
+
+function montarGridConcursos(concursos) {
+    const grid = document.getElementById('grid-concursos-icone');
+    grid.innerHTML = '';
+
+    if (!concursos.length) {
+        grid.innerHTML = '<div class="small text-secondary fst-italic">Nenhum concurso encontrado.</div>';
+        return;
+    }
+
+    concursos.forEach(c => {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3';
+        const iconeHtml = c.logo_url
+            ? `<img src="${escapeHtml(c.logo_url)}" alt="" style="width:40px; height:40px; object-fit:contain;" onerror="this.replaceWith(Object.assign(document.createElement('i'), {className:'bi bi-mortarboard fs-2'}))">`
+            : '<i class="bi bi-mortarboard fs-2"></i>';
+        col.innerHTML = `
+            <button type="button" class="btn btn-outline-secondary w-100 card-concurso-icone" data-id="${c.id}">
+                ${iconeHtml}
+                <span class="small">${escapeHtml(c.nome)}</span>
+            </button>`;
+        col.querySelector('button').addEventListener('click', () => escolherConcurso(c));
+        grid.appendChild(col);
+    });
+}
+
+document.getElementById('input-filtro-concurso').addEventListener('input', (e) => {
+    const termo = e.target.value.trim().toLowerCase();
+    const filtrados = termo ? listaConcursos.filter(c => c.nome.toLowerCase().includes(termo)) : listaConcursos;
+    montarGridConcursos(filtrados);
+});
+
+async function escolherConcurso(c) {
+    concursoSelecionado = { id: c.id, nome: c.nome };
+    bancaDoConcurso = c.banca_id;
+
+    document.getElementById('etapa-concurso-icone').classList.add('d-none');
+    document.getElementById('etapa-filtros-concurso').classList.remove('d-none');
+    document.getElementById('titulo-concurso-filtros').textContent = c.nome;
+
+    await carregarFiltrosDoConcurso(c.id);
+}
+
+async function carregarFiltrosDoConcurso(concursoId) {
+    const listaEl = document.getElementById('lista-filtros-concurso');
+    const vazioEl = document.getElementById('vazio-filtros-concurso');
+    listaEl.innerHTML = '<div class="small text-secondary">Carregando...</div>';
+
+    const { data: filtros } = await supabaseClient
+        .from('filtros_salvos')
+        .select('*')
+        .eq('usuario_id', userId)
+        .eq('concurso_id', concursoId)
+        .order('criado_em', { ascending: false });
+
+    listaEl.innerHTML = '';
+
+    if (!filtros || filtros.length === 0) {
+        vazioEl.classList.remove('d-none');
+        return;
+    }
+    vazioEl.classList.add('d-none');
+
+    filtros.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <div class="fw-semibold small">${f.nome}</div>
+                    ${f.descricao ? `<div class="text-secondary small">${f.descricao}</div>` : ''}
+                    <div class="text-secondary small mt-1">
+                        ${(f.topicos || []).length} tópico(s) · ${f.dificuldade || '—'} · ${f.quantidade} questões
+                        ${f.nivel_ensino ? ` · nível ${ROTULOS_NIVEL[f.nivel_ensino] || f.nivel_ensino}` : ''}
+                    </div>
+                </div>
+                <button type="button" class="btn btn-gold btn-sm text-nowrap btn-usar-filtro">Usar esse filtro</button>
+            </div>
+        `;
+        card.querySelector('.btn-usar-filtro').addEventListener('click', () => usarFiltroSalvo(f));
+        listaEl.appendChild(card);
+    });
+}
+
+async function usarFiltroSalvo(filtro) {
+    document.getElementById('etapa-filtros-concurso').classList.add('d-none');
+    // Mostra a tela de configuração por baixo (mesmo sem preencher os campos) —
+    // é onde a mensagem de erro/"nenhuma questão encontrada" é exibida. Se der
+    // certo, mostrarQuestao() esconde ela de novo e mostra a questão direto.
+    document.getElementById('tela-selecao').classList.remove('d-none');
+    document.getElementById('titulo-concurso-escolhido').textContent = concursoSelecionado.nome;
+
+    const msgEl = document.getElementById('msg');
+    msgEl.className = 'alert alert-info';
+    msgEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Gerando questões... isso pode levar alguns segundos.';
+    msgEl.classList.remove('d-none');
+
+    const topico_ids = (filtro.topicos || []).map(t => t.id);
+    await gerarLote({
+        topico_ids,
+        dificuldade: filtro.dificuldade,
+        modo: filtro.modo || 'existente',
+        quantidade: filtro.quantidade,
+        nivel_ensino: filtro.nivel_ensino || null,
+    });
+}
+
+async function abrirTelaConfiguracao() {
+    document.getElementById('etapa-filtros-concurso').classList.add('d-none');
+    document.getElementById('tela-selecao').classList.remove('d-none');
+    document.getElementById('titulo-concurso-escolhido').textContent = concursoSelecionado.nome;
+
+    await carregarCargosDoConcurso(concursoSelecionado.id);
+    await carregarMateriasDoConcurso(concursoSelecionado.id);
+}
+
+document.getElementById('btn-ir-configurar').addEventListener('click', abrirTelaConfiguracao);
+
+document.getElementById('btn-trocar-concurso-filtros').addEventListener('click', () => {
+    document.getElementById('etapa-filtros-concurso').classList.add('d-none');
+    document.getElementById('etapa-concurso-icone').classList.remove('d-none');
+});
+
+document.getElementById('btn-trocar-concurso').addEventListener('click', () => {
+    document.getElementById('tela-selecao').classList.add('d-none');
+    document.getElementById('etapa-filtros-concurso').classList.remove('d-none');
+});
+
+async function atualizarSaldo() {
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+}
+
+let mapaNivelPorCargo = new Map(); // cargo_id -> nivel_ensino
+
+async function carregarCargosDoConcurso(concursoId) {
+    const { data: cargos } = await supabaseClient.from('concurso_cargos').select('id, nome, nivel_ensino').eq('concurso_id', concursoId).order('nome');
+    mapaNivelPorCargo = new Map((cargos || []).map(c => [String(c.id), c.nivel_ensino || null]));
+    const select = document.getElementById('select-cargo');
+    select.innerHTML = '<option value="">Geral (sem cargo específico)</option>';
+    (cargos || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        select.appendChild(opt);
+    });
+    document.getElementById('bloco-cargo').classList.toggle('d-none', !cargos || cargos.length === 0);
+    select.onchange = () => { carregarMateriasDoConcurso(concursoSelecionado.id); atualizarTextoNivelImplicito(); };
+    atualizarTextoNivelImplicito();
+}
+
+async function carregarMateriasDoConcurso(concursoId) {
+    const cargoId = document.getElementById('select-cargo').value || null;
+
+    // Sempre pega os vínculos "gerais" (cargo_id nulo) + os específicos do cargo escolhido, se houver
+    let query = supabaseClient.from('concurso_topicos').select('topico_id, relevancia').eq('concurso_id', concursoId);
+    query = cargoId ? query.or(`cargo_id.is.null,cargo_id.eq.${cargoId}`) : query.is('cargo_id', null);
+    const { data: vinculos } = await query;
+
+    const container = document.getElementById('lista-materias-concurso');
+    container.innerHTML = '';
+
+    if (!vinculos || vinculos.length === 0) {
+        document.getElementById('bloco-materias').classList.add('d-none');
+        document.getElementById('sem-materias').classList.remove('d-none');
+        checarPodeGerar();
+        return;
+    }
+
+    document.getElementById('sem-materias').classList.add('d-none');
+    document.getElementById('bloco-materias').classList.remove('d-none');
+
+    mapaTopicosCarregados = new Map();
+
+    const ordem = { alta: 0, media: 1, baixa: 2 };
+    const vinculosUnicos = [...new Map((vinculos || []).map(v => [v.topico_id, v])).values()];
+    const vinculosOrdenados = vinculosUnicos.sort((a, b) => ordem[a.relevancia] - ordem[b.relevancia]);
+
+    const badgeInfo = {
+        alta: { texto: 'Alta', classe: 'text-bg-danger' },
+        media: { texto: 'Média', classe: 'text-bg-warning' },
+        baixa: { texto: 'Baixa', classe: 'text-bg-secondary' },
+    };
+
+    for (const v of vinculosOrdenados) {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: v.topico_id });
+        mapaTopicosCarregados.set(v.topico_id, caminho || String(v.topico_id));
+        const info = badgeInfo[v.relevancia] || badgeInfo.media;
+        const linha = document.createElement('div');
+        linha.className = 'form-check py-1 d-flex align-items-center gap-2';
+        linha.innerHTML = `
+            <input class="form-check-input check-materia-concurso" type="checkbox" value="${v.topico_id}" id="mat-${v.topico_id}" checked>
+            <label class="form-check-label small flex-fill" for="mat-${v.topico_id}">${caminho || v.topico_id}</label>
+            <span class="badge ${info.classe}" style="font-size:0.7rem;">${info.texto}</span>
+        `;
+        container.appendChild(linha);
+    }
+    checarPodeGerar();
+    document.querySelectorAll('.check-materia-concurso').forEach(cb => cb.addEventListener('change', checarPodeGerar));
+}
+
+// ================= FLASHCARDS por concurso/cargo =================
+
+document.getElementById('btn-ir-flashcards-cargo').addEventListener('click', async () => {
+    document.getElementById('etapa-filtros-concurso').classList.add('d-none');
+    document.getElementById('etapa-flashcards-cargo').classList.remove('d-none');
+
+    const { data: cargos } = await supabaseClient.from('concurso_cargos').select('id, nome').eq('concurso_id', concursoSelecionado.id).order('nome');
+    const select = document.getElementById('select-cargo-flashcards');
+    select.innerHTML = '<option value="">Geral (sem cargo específico)</option>';
+    (cargos || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        select.appendChild(opt);
+    });
+});
+
+document.getElementById('btn-voltar-flashcards-cargo').addEventListener('click', () => {
+    document.getElementById('etapa-flashcards-cargo').classList.add('d-none');
+    document.getElementById('etapa-filtros-concurso').classList.remove('d-none');
+});
+
+document.getElementById('btn-voltar-flashcards-lista').addEventListener('click', () => {
+    document.getElementById('etapa-flashcards-lista').classList.add('d-none');
+    document.getElementById('etapa-flashcards-cargo').classList.remove('d-none');
+});
+
+document.getElementById('btn-ver-conteudo-flashcards').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-ver-conteudo-flashcards');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Carregando...';
+
+    const cargoId = document.getElementById('select-cargo-flashcards').value || null;
+
+    let query = supabaseClient.from('concurso_topicos').select('topico_id').eq('concurso_id', concursoSelecionado.id);
+    query = cargoId ? query.or(`cargo_id.is.null,cargo_id.eq.${cargoId}`) : query.is('cargo_id', null);
+    const { data: vinculos } = await query;
+
+    btn.disabled = false;
+    btn.textContent = 'Ver conteúdo programático';
+
+    const topicoIdsUnicos = [...new Set((vinculos || []).map(v => v.topico_id))];
+
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const userId = userData?.user?.id;
+
+    const listaEl = document.getElementById('lista-topicos-flashcards');
+    const vazioEl = document.getElementById('vazio-topicos-flashcards');
+    listaEl.innerHTML = '';
+
+    const comFlashcard = [];
+    for (const topicoId of topicoIdsUnicos) {
+        const { count } = await supabaseClient
+            .from('flashcards_usuario').select('id', { count: 'exact', head: true })
+            .eq('topico_id', topicoId).eq('usuario_id', userId);
+        if (count && count > 0) {
+            const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: topicoId });
+            comFlashcard.push({ topicoId, caminho: caminho || String(topicoId), total: count });
+        }
+    }
+
+    document.getElementById('etapa-flashcards-cargo').classList.add('d-none');
+    document.getElementById('etapa-flashcards-lista').classList.remove('d-none');
+
+    if (comFlashcard.length === 0) {
+        vazioEl.classList.remove('d-none');
+        return;
+    }
+    vazioEl.classList.add('d-none');
+
+    comFlashcard.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center gap-2" style="cursor:pointer;">
+                <span class="small fw-semibold flex-fill">${item.caminho}</span>
+                <span class="badge text-bg-info">${item.total} flashcard${item.total === 1 ? '' : 's'}</span>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div class="mt-2 d-none bloco-flashcards-topico"></div>
+        `;
+        const cabecalho = card.querySelector('.d-flex');
+        const bloco = card.querySelector('.bloco-flashcards-topico');
+        let carregado = false;
+        cabecalho.addEventListener('click', async () => {
+            const abrindo = bloco.classList.contains('d-none');
+            bloco.classList.toggle('d-none');
+            cabecalho.querySelector('.bi-chevron-down, .bi-chevron-up').className = abrindo ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+            if (abrindo && !carregado) {
+                carregado = true;
+                await FlashcardsWidget.renderPainel(item.topicoId, bloco);
+            }
+        });
+        listaEl.appendChild(card);
+    });
+});
+
+document.getElementById('btn-marcar-todas').addEventListener('click', () => {
+    const checks = document.querySelectorAll('.check-materia-concurso');
+    const todasMarcadas = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => c.checked = !todasMarcadas);
+    checarPodeGerar();
+});
+
+function checarPodeGerar() {
+    const marcadas = document.querySelectorAll('.check-materia-concurso:checked');
+    document.getElementById('btn-gerar').disabled = marcadas.length === 0;
+}
+
+document.getElementById('btn-gerar').addEventListener('click', () => gerarLote());
+
+const ROTULOS_NIVEL = { primario: 'Primário', fundamental: 'Fundamental', medio: 'Médio', superior: 'Superior' };
+
+function atualizarTextoNivelImplicito() {
+    const cargoId = document.getElementById('select-cargo').value || null;
+    const textoEl = document.getElementById('texto-nivel-implicito');
+    if (!cargoId) {
+        textoEl.textContent = '';
+        return;
+    }
+    const nivel = mapaNivelPorCargo.get(cargoId);
+    textoEl.textContent = nivel
+        ? `Nível de ensino aplicado automaticamente: ${ROTULOS_NIVEL[nivel] || nivel} (vem do cargo escolhido).`
+        : 'Esse cargo não tem nível de ensino cadastrado — buscando de qualquer nível.';
+}
+
+async function gerarLote(overrides) {
+    const btn = document.getElementById('btn-gerar');
+    const msgEl = document.getElementById('msg');
+    msgEl.classList.add('d-none');
+
+    const topico_ids = overrides?.topico_ids
+        ?? Array.from(document.querySelectorAll('.check-materia-concurso:checked')).map(c => parseInt(c.value, 10));
+    const dificuldade = overrides?.dificuldade ?? document.getElementById('select-dificuldade').value;
+    const modo = overrides?.modo ?? document.querySelector('input[name="modo"]:checked').value;
+    const quantidade = overrides?.quantidade ?? parseInt(document.getElementById('input-quantidade').value, 10);
+    let nivel_ensino = overrides?.nivel_ensino;
+    if (nivel_ensino === undefined) {
+        const cargoIdSelecionado = document.getElementById('select-cargo').value || null;
+        nivel_ensino = cargoIdSelecionado ? (mapaNivelPorCargo.get(cargoIdSelecionado) || null) : null;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Gerando ' + quantidade + ' questõe(s)...'; }
+
+    const { data, error } = await supabaseClient.functions.invoke('gerar-questoes-lote', {
+        body: { topico_ids, banca_id: bancaDoConcurso, nivel_ensino, dificuldade, modo, quantidade }
+    });
+
+    if (btn) { btn.disabled = false; btn.textContent = 'Buscar questão'; }
+
+    if (error || data?.error) {
+        await mostrarErroBusca(msgEl, error, data);
+        return;
+    }
+    if (!data.resultados || data.resultados.length === 0) {
+        const detalhe = (data.erros && data.erros.length > 0) ? '<br><br>Detalhes:<br>' + data.erros.join('<br>') : '';
+        msgEl.innerHTML = 'Não foi possível gerar questões com esses filtros.' + detalhe;
+        msgEl.className = 'alert alert-warning';
+        msgEl.classList.remove('d-none');
+        return;
+    }
+
+    resultadosLote = data.resultados;
+    indiceAtual = 0;
+    contadorAcertos = 0;
+    contadorErros = 0;
+    atualizarBadgesContador();
+    mostrarQuestao(resultadosLote[indiceAtual], dificuldade);
+    await atualizarSaldo();
+}
+
+function mostrarQuestao(q, dificuldade) {
+    questaoExibidaAtual = q;
+    document.getElementById('tela-selecao').classList.add('d-none');
+    document.getElementById('tela-questao').classList.remove('d-none');
+    document.getElementById('badge-dificuldade').textContent = dificuldade;
+    document.getElementById('badge-nivel-ensino').textContent = q.nivel_ensino ? (ROTULOS_NIVEL[q.nivel_ensino] || q.nivel_ensino) : 'Nível não informado';
+
+    const badgeOrigemEl = document.getElementById('badge-origem');
+    if (q.origem === 'ia_comunidade') {
+        badgeOrigemEl.className = 'bolinha-origem ia';
+        badgeOrigemEl.title = 'Gerada por IA agora';
+    } else {
+        const rotulosOrigemBanco = {
+            pdf_extraido: 'Banco (PDF importado)',
+            importado_externo: 'Banco (prova real)',
+            enviada_usuario: 'Banco (comunidade)',
+        };
+        badgeOrigemEl.className = 'bolinha-origem banco';
+        badgeOrigemEl.title = rotulosOrigemBanco[q.origem] || 'Já existente no banco';
+    }
+    document.getElementById('badge-topico').textContent = `Questão ${indiceAtual + 1} de ${resultadosLote.length}`;
+    document.getElementById('badge-caminho').textContent = 'Carregando tópico...';
+    document.getElementById('questao-enunciado').textContent = q.enunciado;
+    document.getElementById('questao-resultado').classList.add('d-none');
+    document.getElementById('btn-nova').classList.add('d-none');
+    document.getElementById('btn-explicacao').classList.add('d-none');
+    document.getElementById('btn-materia').classList.add('d-none');
+    document.getElementById('conteudo-extra').classList.add('d-none');
+    document.getElementById('painel-reportar').classList.add('d-none');
+    document.getElementById('msg-reporte').textContent = '';
+    document.getElementById('input-comentario-reporte').value = '';
+    document.getElementById('btn-reportar-erro').disabled = false;
+    document.getElementById('btn-reportar-erro').innerHTML = '<i class="bi bi-flag"></i> Reportar erro nessa questão';
+
+    supabaseClient.rpc('caminho_topico', { topico_id_param: q.topico_id }).then(({ data }) => {
+        document.getElementById('badge-caminho').innerHTML = '<i class="bi bi-signpost-split"></i> ' + (data || '');
+    });
+
+    iniciarCronometro();
+
+    const alternativasEl = document.getElementById('questao-alternativas');
+    alternativasEl.innerHTML = '';
+    q.alternativas.forEach(alt => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-secondary text-start';
+        btn.textContent = alt.letra + ') ' + alt.texto;
+        btn.addEventListener('click', () => responderQuestao(alt.letra, q));
+        alternativasEl.appendChild(btn);
+    });
+}
+
+function iniciarCronometro() {
+    if (cronometroInterval) clearInterval(cronometroInterval);
+    tempoInicio = Date.now();
+    atualizarDisplayCronometro();
+    cronometroInterval = setInterval(atualizarDisplayCronometro, 1000);
+}
+function pararCronometro() {
+    if (cronometroInterval) clearInterval(cronometroInterval);
+    cronometroInterval = null;
+    return tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : null;
+}
+function atualizarBadgesContador() {
+    document.getElementById('badge-acertos').innerHTML = '<i class="bi bi-check-lg"></i> ' + contadorAcertos;
+    document.getElementById('badge-erros').innerHTML = '<i class="bi bi-x-lg"></i> ' + contadorErros;
+}
+
+function atualizarDisplayCronometro() {
+    if (!tempoInicio) return;
+    const segundos = Math.floor((Date.now() - tempoInicio) / 1000);
+    const mm = String(Math.floor(segundos / 60)).padStart(2, '0');
+    const ss = String(segundos % 60).padStart(2, '0');
+    document.getElementById('badge-cronometro').innerHTML = `<i class="bi bi-stopwatch"></i> ${mm}:${ss}`;
+}
+
+async function responderQuestao(letraEscolhida, q) {
+    const tempoGasto = pararCronometro();
+    const acertou = letraEscolhida === q.resposta_correta;
+    if (acertou) contadorAcertos++; else contadorErros++;
+    atualizarBadgesContador();
+
+    await supabaseClient.from('tentativas').insert({
+        usuario_id: userId, questao_id: q.id, resposta_dada: letraEscolhida, acertou, tempo_gasto_segundos: tempoGasto,
+    });
+
+    const resultadoEl = document.getElementById('questao-resultado');
+    resultadoEl.className = 'alert ' + (acertou ? 'alert-success' : 'alert-danger');
+    const tempoFormatado = tempoGasto != null ? `${String(Math.floor(tempoGasto/60)).padStart(2,'0')}:${String(tempoGasto%60).padStart(2,'0')}` : '—';
+    resultadoEl.innerHTML = (acertou ? '<i class="bi bi-check-circle-fill me-1"></i> Você acertou!' : '<i class="bi bi-x-circle-fill me-1"></i> Você errou.')
+        + ' Resposta correta: <strong>' + q.resposta_correta + '</strong>. ' + (q.justificativa_curta || '')
+        + `<div class="small mt-1 text-secondary">Tempo gasto: ${tempoFormatado}</div>`;
+    resultadoEl.classList.remove('d-none');
+
+    const btnEstudarFlashcards = document.getElementById('btn-estudar-flashcards-erro');
+    btnEstudarFlashcards.classList.add('d-none');
+    if (!acertou && q.topico_id && window.FlashcardsWidget) {
+        const totalFlashcards = await FlashcardsWidget.contarFlashcardsDoTopico(q.topico_id);
+        if (totalFlashcards > 0) {
+            btnEstudarFlashcards.classList.remove('d-none');
+            btnEstudarFlashcards.onclick = () => FlashcardsWidget.abrirEstudoPorTopico(q.topico_id);
+        }
+    }
+
+    document.querySelectorAll('#questao-alternativas button').forEach(b => b.disabled = true);
+    document.getElementById('btn-explicacao').classList.remove('d-none');
+    document.getElementById('btn-materia').classList.remove('d-none');
+
+    const btnNova = document.getElementById('btn-nova');
+    btnNova.classList.remove('d-none');
+    if (indiceAtual < resultadosLote.length - 1) {
+        btnNova.textContent = 'Próxima questão →';
+        btnNova.onclick = () => { indiceAtual++; mostrarQuestao(resultadosLote[indiceAtual], document.getElementById('badge-dificuldade').textContent); };
+    } else {
+        btnNova.textContent = 'Lote concluído — voltar para seleção';
+        btnNova.onclick = () => {
+            document.getElementById('tela-questao').classList.add('d-none');
+            document.getElementById('tela-selecao').classList.remove('d-none');
+        };
+    }
+}
+
+function escapeHtml(txt) {
+    const div = document.createElement('div');
+    div.textContent = txt;
+    return div.innerHTML;
+}
+function formatarConteudoExtra(texto, tipo) {
+    if (tipo !== 'explicacao') return `<div>${escapeHtml(texto).replace(/\n/g, '<br>')}</div>`;
+    try {
+        const obj = JSON.parse(texto);
+        let html = `<div class="mb-2"><strong>✅ Por que a alternativa correta está certa:</strong><br>${escapeHtml(obj.por_que_correta)}</div>`;
+        html += `<div class="mb-2"><strong>❌ Por que as outras estão erradas:</strong></div>`;
+        (obj.alternativas_erradas || []).forEach(a => {
+            html += `<div class="mb-2 ps-2 border-start"><strong>${escapeHtml(a.letra)})</strong> ${escapeHtml(a.motivo)}</div>`;
+        });
+        if (obj.dica_memorizacao) html += `<div class="mt-2"><strong>💡 Dica:</strong><br>${escapeHtml(obj.dica_memorizacao)}</div>`;
+        return html;
+    } catch {
+        return `<div>${escapeHtml(texto).replace(/\n/g, '<br>')}</div>`;
+    }
+}
+async function buscarConteudoExtra(tipo) {
+    if (!questaoExibidaAtual) return;
+    const btnId = tipo === 'explicacao' ? 'btn-explicacao' : 'btn-materia';
+    const btn = document.getElementById(btnId);
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Carregando...';
+
+    const { data, error } = await supabaseClient.functions.invoke('obter-conteudo-extra', {
+        body: { questao_id: questaoExibidaAtual.id, tipo }
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+
+    if (error || data?.error) { alert('Erro: ' + await extrairMensagemErroAmigavel(error, data)); return; }
+
+    const box = document.getElementById('conteudo-extra');
+    box.innerHTML = formatarConteudoExtra(data.texto, tipo) +
+        (data.cobrado ? '' : '<div class="text-secondary small mt-2">(já estava desbloqueado — sem cobrança)</div>');
+    box.classList.remove('d-none');
+    await atualizarSaldo();
+}
+document.getElementById('btn-explicacao').addEventListener('click', () => buscarConteudoExtra('explicacao'));
+document.getElementById('btn-materia').addEventListener('click', () => buscarConteudoExtra('materia'));
+
+// ---------- Reportar erro na questão ----------
+
+// ---------- Ver guias desse assunto ----------
+document.getElementById('btn-ver-guias').addEventListener('click', async () => {
+    if (!questaoExibidaAtual) return;
+    const painel = document.getElementById('painel-guias-inline');
+    const btn = document.getElementById('btn-ver-guias');
+    const abrindo = painel.classList.contains('d-none');
+
+    document.getElementById('painel-referencias-inline').classList.add('d-none');
+    document.getElementById('btn-ver-referencias').innerHTML = '<i class="bi bi-link-45deg"></i> Minhas referências';
+
+    painel.classList.toggle('d-none');
+    btn.innerHTML = abrindo
+        ? '<i class="bi bi-journal-bookmark"></i> Esconder guias'
+        : '<i class="bi bi-journal-bookmark"></i> Ver guias desse assunto';
+
+    if (abrindo) {
+        await GuiasWidget.renderListaGuias(
+            questaoExibidaAtual.topico_id,
+            document.getElementById('lista-guias-inline'),
+            document.getElementById('vazio-guias-inline')
+        );
+        painel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+});
+
+// ---------- Minhas referências desse assunto ----------
+document.getElementById('btn-ver-referencias').addEventListener('click', async () => {
+    if (!questaoExibidaAtual) return;
+    const painel = document.getElementById('painel-referencias-inline');
+    const btn = document.getElementById('btn-ver-referencias');
+    const abrindo = painel.classList.contains('d-none');
+
+    document.getElementById('painel-guias-inline').classList.add('d-none');
+    document.getElementById('btn-ver-guias').innerHTML = '<i class="bi bi-journal-bookmark"></i> Ver guias desse assunto';
+
+    painel.classList.toggle('d-none');
+    btn.innerHTML = abrindo
+        ? '<i class="bi bi-link-45deg"></i> Esconder referências'
+        : '<i class="bi bi-link-45deg"></i> Minhas referências';
+
+    if (abrindo) {
+        await ReferenciasWidget.renderPainel(questaoExibidaAtual.topico_id, painel);
+        painel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+});
+
+document.getElementById('btn-reportar-erro').addEventListener('click', async () => {
+    if (!questaoExibidaAtual) return;
+    const btn = document.getElementById('btn-reportar-erro');
+    const painel = document.getElementById('painel-reportar');
+    const msgEl = document.getElementById('msg-reporte');
+
+    if (!painel.classList.contains('d-none')) {
+        painel.classList.add('d-none');
+        return;
+    }
+
+    btn.disabled = true;
+    const { data: jaReportou } = await supabaseClient
+        .from('questoes_reportadas').select('id')
+        .eq('questao_id', questaoExibidaAtual.id).eq('usuario_id', userId).maybeSingle();
+    btn.disabled = false;
+
+    if (jaReportou) {
+        msgEl.className = 'small mt-2 text-secondary';
+        msgEl.textContent = 'Você já reportou essa questão — a administração vai revisar.';
+        painel.classList.remove('d-none');
+        document.getElementById('select-motivo-reporte').classList.add('d-none');
+        document.getElementById('input-comentario-reporte').classList.add('d-none');
+        document.getElementById('btn-enviar-reporte').classList.add('d-none');
+        return;
+    }
+
+    painel.classList.remove('d-none');
+});
+
+document.getElementById('btn-cancelar-reporte').addEventListener('click', () => {
+    document.getElementById('painel-reportar').classList.add('d-none');
+});
+
+document.getElementById('btn-enviar-reporte').addEventListener('click', async () => {
+    if (!questaoExibidaAtual) return;
+    const btn = document.getElementById('btn-enviar-reporte');
+    const msgEl = document.getElementById('msg-reporte');
+    const motivo = document.getElementById('select-motivo-reporte').value;
+    const comentario = document.getElementById('input-comentario-reporte').value.trim() || null;
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    const { error } = await supabaseClient.from('questoes_reportadas').insert({
+        questao_id: questaoExibidaAtual.id, usuario_id: userId, motivo, comentario,
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Enviar reporte';
+
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        return;
+    }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = 'Reporte enviado! Obrigado — a administração vai revisar essa questão.';
+    document.getElementById('btn-reportar-erro').innerHTML = '<i class="bi bi-flag-fill"></i> Já reportada';
+    document.getElementById('btn-reportar-erro').disabled = true;
+});
+
+// ================= Salvar seleção como filtro =================
+
+document.getElementById('btn-toggle-salvar-filtro').addEventListener('click', () => {
+    const bloco = document.getElementById('bloco-salvar-filtro');
+    bloco.classList.toggle('d-none');
+
+    if (!bloco.classList.contains('d-none') && !document.getElementById('input-nome-filtro').value) {
+        const selectCargo = document.getElementById('select-cargo');
+        const nomeCargo = selectCargo.options[selectCargo.selectedIndex]?.textContent || '';
+        const partes = [concursoSelecionado?.nome || ''];
+        if (nomeCargo && nomeCargo !== 'Geral (sem cargo específico)') partes.push(nomeCargo);
+        document.getElementById('input-nome-filtro').value = partes.filter(Boolean).join(' - ');
+    }
+});
+
+document.getElementById('btn-salvar-filtro').addEventListener('click', async () => {
+    const msgEl = document.getElementById('msg-salvar-filtro');
+    const btn = document.getElementById('btn-salvar-filtro');
+    const nome = document.getElementById('input-nome-filtro').value.trim();
+
+    if (!nome) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Dá um nome pro filtro antes de salvar.';
+        return;
+    }
+
+    const topico_ids = Array.from(document.querySelectorAll('.check-materia-concurso:checked')).map(c => parseInt(c.value, 10));
+    if (!topico_ids.length) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Marque ao menos uma matéria antes de salvar.';
+        return;
+    }
+
+    const topicos = topico_ids.map(id => ({ id, nome: mapaTopicosCarregados.get(id) || String(id) }));
+    const cargoIdSelecionado = document.getElementById('select-cargo').value || null;
+    const nivelEnsinoDoFiltro = cargoIdSelecionado ? (mapaNivelPorCargo.get(cargoIdSelecionado) || null) : null;
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const { error } = await supabaseClient.from('filtros_salvos').insert({
+        usuario_id: userId,
+        nome,
+        descricao: document.getElementById('input-descricao-filtro').value.trim() || null,
+        banca_id: bancaDoConcurso || null,
+        dificuldade: document.getElementById('select-dificuldade').value,
+        modo: document.querySelector('input[name="modo"]:checked').value,
+        topicos,
+        quantidade: parseInt(document.getElementById('input-quantidade').value, 10) || 5,
+        concurso_id: concursoSelecionado ? concursoSelecionado.id : null,
+        nivel_ensino: nivelEnsinoDoFiltro,
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Salvar filtro';
+
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro ao salvar: ' + error.message;
+        return;
+    }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = 'Filtro salvo ✓ — já aparece em "Meus filtros".';
+    document.getElementById('input-nome-filtro').value = '';
+    document.getElementById('input-descricao-filtro').value = '';
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Feedbacks — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link active"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Feedbacks dos usuários</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="row g-2 mb-3">
+            <div class="col-auto">
+                <select id="filtro-tipo" class="form-select form-select-sm">
+                    <option value="">Todos os tipos</option>
+                    <option value="sugestao">💡 Sugestão</option>
+                    <option value="informacao">ℹ️ Informação</option>
+                    <option value="denuncia">🚩 Denúncia</option>
+                    <option value="outro">Outro</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <select id="filtro-status" class="form-select form-select-sm">
+                    <option value="">Todos os status</option>
+                    <option value="novo" selected>Aguardando revisão</option>
+                    <option value="revisado">Já revisado</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="contador" class="alert alert-light border small" style="max-width:750px;"></div>
+
+        <div id="lista-feedbacks" class="d-flex flex-column gap-2" style="max-width:750px;"></div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+let todosFeedbacks = [];
+
+const ROTULOS_TIPO = {
+    sugestao: { texto: '💡 Sugestão', classe: 'text-bg-info' },
+    informacao: { texto: 'ℹ️ Informação', classe: 'text-bg-light border' },
+    denuncia: { texto: '🚩 Denúncia', classe: 'text-bg-danger' },
+    outro: { texto: 'Outro', classe: 'text-bg-secondary' },
+};
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    await carregarFeedbacks();
+})();
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+async function carregarFeedbacks() {
+    const { data, error } = await supabaseClient
+        .from('feedbacks')
+        .select('id, usuario_id, tipo, assunto, mensagem, status, criado_em')
+        .order('criado_em', { ascending: false });
+
+    const container = document.getElementById('lista-feedbacks');
+    if (error) {
+        container.innerHTML = `<div class="text-danger small">${error.message}</div>`;
+        return;
+    }
+
+    todosFeedbacks = data || [];
+
+    // Nome dos usuários, em lote
+    const ids = [...new Set(todosFeedbacks.map(f => f.usuario_id))];
+    if (ids.length > 0) {
+        const { data: usuarios } = await supabaseClient.rpc('admin_listar_usuarios');
+        const mapa = new Map((usuarios || []).map(u => [u.id, u.nome || u.email]));
+        todosFeedbacks.forEach(f => { f.nomeUsuario = mapa.get(f.usuario_id) || f.usuario_id; });
+    }
+
+    aplicarFiltros();
+}
+
+function aplicarFiltros() {
+    const tipo = document.getElementById('filtro-tipo').value;
+    const status = document.getElementById('filtro-status').value;
+
+    let filtrado = todosFeedbacks;
+    if (tipo) filtrado = filtrado.filter(f => f.tipo === tipo);
+    if (status) filtrado = filtrado.filter(f => f.status === status);
+
+    renderLista(filtrado);
+}
+
+document.getElementById('filtro-tipo').addEventListener('change', aplicarFiltros);
+document.getElementById('filtro-status').addEventListener('change', aplicarFiltros);
+
+function renderLista(lista) {
+    const container = document.getElementById('lista-feedbacks');
+    container.innerHTML = '';
+
+    document.getElementById('contador').textContent = `${lista.length} feedback(s).`;
+
+    if (lista.length === 0) {
+        container.innerHTML = '<div class="text-secondary small">Nada por aqui com esse filtro.</div>';
+        return;
+    }
+
+    lista.forEach(f => {
+        const rotulo = ROTULOS_TIPO[f.tipo] || ROTULOS_TIPO.outro;
+        const dataFormatada = new Date(f.criado_em).toLocaleString('pt-BR');
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                <div>
+                    <span class="badge ${rotulo.classe}">${rotulo.texto}</span>
+                    <span class="small text-secondary ms-1">${escapeHtml(String(f.nomeUsuario))} · ${dataFormatada}</span>
+                </div>
+                <span class="badge ${f.status === 'revisado' ? 'text-bg-success' : 'text-bg-warning-subtle text-dark border'}">${f.status === 'revisado' ? 'revisado' : 'novo'}</span>
+            </div>
+            ${f.assunto ? `<div class="small fw-semibold mb-1">${escapeHtml(f.assunto)}</div>` : ''}
+            <p class="small mb-2" style="white-space:pre-wrap;">${escapeHtml(f.mensagem)}</p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm btn-manter" ${f.status === 'revisado' ? 'disabled' : ''}>Manter (marcar revisado)</button>
+                <button class="btn btn-outline-danger btn-sm btn-excluir">Excluir</button>
+            </div>
+            <div class="msg small mt-2"></div>
+        `;
+
+        card.querySelector('.btn-manter').addEventListener('click', async () => {
+            const { error } = await supabaseClient
+                .from('feedbacks')
+                .update({ status: 'revisado', revisado_em: new Date().toISOString() })
+                .eq('id', f.id);
+            const msgEl = card.querySelector('.msg');
+            if (error) { msgEl.className = 'msg small mt-2 text-danger'; msgEl.textContent = error.message; return; }
+            f.status = 'revisado';
+            msgEl.className = 'msg small mt-2 text-success';
+            msgEl.textContent = 'Marcado como revisado ✓';
+            card.querySelector('.btn-manter').disabled = true;
+        });
+
+        card.querySelector('.btn-excluir').addEventListener('click', async () => {
+            if (!confirm('Excluir esse feedback? Não pode ser desfeito.')) return;
+            const { error } = await supabaseClient.from('feedbacks').delete().eq('id', f.id);
+            if (error) { card.querySelector('.msg').className = 'msg small mt-2 text-danger'; card.querySelector('.msg').textContent = error.message; return; }
+            todosFeedbacks = todosFeedbacks.filter(x => x.id !== f.id);
+            card.remove();
+        });
+
+        container.appendChild(card);
+    });
+}
+</script>
+
+</body>
+</html>

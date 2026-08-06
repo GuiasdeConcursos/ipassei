@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guias de Estudo — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .estrelas-readonly { color: #f5b301; letter-spacing: 1px; }
+    .estrelas-input { font-size: 1.6rem; cursor: pointer; letter-spacing: 2px; }
+    .estrelas-input .estrela { color: #ccc; transition: color 0.1s; }
+    .estrelas-input .estrela.ativa { color: #f5b301; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="guias.html" class="nav-link active"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+        <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Guias de Estudo</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="card-soft mb-3" style="max-width:700px;">
+            <label class="form-label small fw-semibold">Buscar assunto (3+ letras)</label>
+            <input type="text" id="busca-topico" class="form-control" placeholder="Ex: Licitações, Crase, JPA...">
+            <div id="lista-busca" class="list-group mt-2" style="max-height:250px; overflow-y:auto;"></div>
+        </div>
+
+        <div class="card-soft mb-3" id="card-arvore" style="max-width:700px;">
+            <h2 class="h6 fw-bold mb-2"><i class="bi bi-diagram-3"></i> Ou navegue pela árvore de matérias</h2>
+            <div id="arvore-topicos-guias"></div>
+        </div>
+
+        <div id="painel-guias" class="d-none" style="max-width:700px;">
+            <button type="button" id="btn-nova-busca" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Nova busca</button>
+            <h1 class="h5 fw-bold mb-3" id="titulo-topico-guias"></h1>
+
+            <div id="lista-guias-topico" class="d-flex flex-column gap-3"></div>
+            <div id="vazio-guias-topico" class="text-secondary small d-none">Ainda não tem nenhuma guia pra esse assunto.</div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/supabase-config.js"></script>
+<script src="assets/guias-widget.js"></script>
+<script>
+let userId = null;
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+})();
+
+let debounceTimer = null;
+document.getElementById('busca-topico').addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const termo = e.target.value.trim();
+    const listaEl = document.getElementById('lista-busca');
+    if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+    debounceTimer = setTimeout(async () => {
+        const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+        listaEl.innerHTML = '';
+        (data || []).forEach(t => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `<strong class="small">${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.78rem;">${escapeHtml(t.caminho)}</span>`;
+            item.addEventListener('click', () => abrirGuiasDoTopico(t));
+            listaEl.appendChild(item);
+        });
+    }, 350);
+});
+
+async function abrirGuiasDoTopico(topico) {
+    document.getElementById('painel-guias').classList.remove('d-none');
+    document.getElementById('card-arvore').classList.add('d-none');
+    document.getElementById('titulo-topico-guias').textContent = topico.caminho;
+    document.getElementById('busca-topico').value = '';
+    document.getElementById('lista-busca').innerHTML = '';
+    await GuiasWidget.renderListaGuias(topico.id, document.getElementById('lista-guias-topico'), document.getElementById('vazio-guias-topico'));
+}
+
+document.getElementById('btn-nova-busca').addEventListener('click', () => {
+    document.getElementById('painel-guias').classList.add('d-none');
+    document.getElementById('card-arvore').classList.remove('d-none');
+});
+
+// ---------- Árvore de matérias/tópicos (mesmo padrão de admin/topicos.html) ----------
+(async () => {
+    await carregarNivelArvoreGuias(null, document.getElementById('arvore-topicos-guias'));
+})();
+
+async function carregarNivelArvoreGuias(paiId, containerEl) {
+    const { data } = await supabaseClient.rpc('arvore_filhos', { pai_id: paiId });
+    const wrap = document.createElement('div');
+    wrap.className = 'ps-' + (paiId ? '3' : '0');
+    (data || []).forEach(item => wrap.appendChild(criarLinhaArvoreGuias(item)));
+    containerEl.appendChild(wrap);
+}
+
+function criarLinhaArvoreGuias(item) {
+    const linha = document.createElement('div');
+    linha.className = 'd-flex align-items-center gap-2 py-1 border-bottom';
+
+    const btnExpandir = document.createElement('button');
+    btnExpandir.type = 'button';
+    btnExpandir.className = 'btn btn-sm btn-link p-0';
+    btnExpandir.style.width = '20px';
+    btnExpandir.innerHTML = item.tem_filhos ? '<i class="bi bi-caret-right-fill"></i>' : '';
+    btnExpandir.style.visibility = item.tem_filhos ? 'visible' : 'hidden';
+
+    const label = document.createElement('span');
+    label.className = 'small flex-fill';
+    label.textContent = item.nome;
+    label.style.cursor = item.tem_filhos ? 'pointer' : 'default';
+
+    const badgeContagem = document.createElement('span');
+    badgeContagem.className = 'badge text-bg-secondary';
+    badgeContagem.style.fontSize = '0.68rem';
+    badgeContagem.textContent = '…';
+    supabaseClient.from('guias_estudo').select('id', { count: 'exact', head: true }).eq('topico_id', item.id).eq('ativa', true)
+        .then(({ count }) => {
+            const n = count || 0;
+            badgeContagem.textContent = n;
+            badgeContagem.className = 'badge ' + (n === 0 ? 'text-bg-light border text-secondary' : 'text-bg-success');
+        });
+
+    const btnVerGuias = document.createElement('button');
+    btnVerGuias.type = 'button';
+    btnVerGuias.className = 'btn btn-outline-success btn-sm py-0 px-2';
+    btnVerGuias.style.fontSize = '0.75rem';
+    btnVerGuias.innerHTML = '<i class="bi bi-journal-bookmark"></i> Ver guias';
+    btnVerGuias.addEventListener('click', async () => {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: item.id });
+        abrirGuiasDoTopico({ id: item.id, caminho: caminho || item.nome });
+    });
+
+    let expandido = false;
+    let filhosContainer = null;
+    btnExpandir.addEventListener('click', async () => {
+        if (!item.tem_filhos) return;
+        if (!expandido) {
+            if (!filhosContainer) {
+                filhosContainer = document.createElement('div');
+                linha.parentElement.insertBefore(filhosContainer, linha.nextSibling);
+                await carregarNivelArvoreGuias(item.id, filhosContainer);
+            } else {
+                filhosContainer.style.display = '';
+            }
+            btnExpandir.innerHTML = '<i class="bi bi-caret-down-fill"></i>';
+        } else {
+            if (filhosContainer) filhosContainer.style.display = 'none';
+            btnExpandir.innerHTML = '<i class="bi bi-caret-right-fill"></i>';
+        }
+        expandido = !expandido;
+    });
+    label.addEventListener('click', () => btnExpandir.click());
+
+    linha.appendChild(btnExpandir);
+    linha.appendChild(label);
+    linha.appendChild(badgeContagem);
+    linha.appendChild(btnVerGuias);
+    return linha;
+}
+</script>
+
+</body>
+</html>

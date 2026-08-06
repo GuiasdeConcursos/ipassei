@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redação — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .card-concurso-icone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; min-height: 110px; text-align: center; }
+    .card-origem-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; min-height: 140px; text-align: center; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <a href="redacao.html" class="nav-link active"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+                <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Redação</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- ===================== ETAPA 1: ORIGEM DO TEMA ===================== -->
+        <div id="etapa-origem">
+            <div class="card-soft mb-3" style="max-width:640px;">
+                <h1 class="h5 fw-bold mb-1">Redação pra qual situação?</h1>
+                <p class="text-secondary small mb-3">Escolha se é pra um concurso específico (a banca já vem certa) ou um treino avulso.</p>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <button type="button" id="btn-origem-concurso" class="btn btn-outline-secondary w-100 card-origem-btn">
+                            <i class="bi bi-mortarboard fs-2"></i>
+                            <span class="fw-semibold">Por concurso</span>
+                            <span class="small text-secondary">A banca vem automática</span>
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button type="button" id="btn-origem-avulso" class="btn btn-outline-secondary w-100 card-origem-btn">
+                            <i class="bi bi-pencil-square fs-2"></i>
+                            <span class="fw-semibold">Avulso</span>
+                            <span class="small text-secondary">Treino livre — escolhe a banca ou não</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== ETAPA 2a: ESCOLHER CONCURSO POR ÍCONE ===================== -->
+        <div id="etapa-escolher-concurso" class="d-none">
+            <button type="button" class="btn btn-outline-secondary btn-sm mb-3 btn-voltar-origem">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </button>
+            <div class="card-soft mb-3" style="max-width:720px;">
+                <h1 class="h5 fw-bold mb-1">Pra qual concurso?</h1>
+                <input type="text" id="input-filtro-concurso" class="form-control form-control-sm mb-3" placeholder="Filtrar por nome...">
+                <div id="grid-concursos-icone" class="row g-3"></div>
+            </div>
+        </div>
+
+        <!-- ===================== ETAPA 2b: ESCOLHER BANCA (AVULSO) ===================== -->
+        <div id="etapa-escolher-banca" class="d-none">
+            <button type="button" class="btn btn-outline-secondary btn-sm mb-3 btn-voltar-origem">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </button>
+            <div class="card-soft" style="max-width:500px;">
+                <h1 class="h5 fw-bold mb-1">Treino avulso</h1>
+                <p class="text-secondary small mb-3">Quer treinar no estilo de alguma banca específica, ou tanto faz?</p>
+                <label class="form-label small fw-semibold">Banca</label>
+                <select id="select-banca-avulso" class="form-select mb-3">
+                    <option value="">Nenhuma (genérico)</option>
+                </select>
+                <button id="btn-confirmar-avulso" class="btn btn-gold w-100">Continuar</button>
+            </div>
+        </div>
+
+        <!-- ===================== ETAPA 3: ESCOLHER O TEMA ===================== -->
+        <div id="etapa-tema" class="d-none">
+            <button type="button" class="btn btn-outline-secondary btn-sm mb-3 btn-voltar-contexto">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </button>
+            <h1 class="h5 fw-bold mb-1" id="titulo-contexto-tema"></h1>
+            <p class="text-secondary small mb-3" id="subtitulo-contexto-tema"></p>
+
+            <div class="card-soft mb-3" style="max-width:700px;" id="card-temas-existentes">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-collection"></i> Temas já disponíveis</h2>
+                <input type="text" id="input-busca-tema" class="form-control form-control-sm mb-2" placeholder="Buscar por palavra no título...">
+                <div id="lista-temas-existentes" class="d-flex flex-column gap-2"></div>
+                <div id="vazio-temas-existentes" class="text-secondary small d-none">Nenhum tema disponível ainda pra esse recorte — que tal pedir um novo?</div>
+                <button type="button" id="btn-carregar-mais-temas" class="btn btn-outline-secondary btn-sm mt-2 d-none">Carregar mais</button>
+            </div>
+
+            <div class="card-soft" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-magic"></i> Pedir um tema novo</h2>
+                <label class="form-label small fw-semibold mb-1">Temática desejada <span class="text-secondary fw-normal">(opcional — ex: ambiental, criminal, tecnologia, saúde pública)</span></label>
+                <input type="text" id="input-tematica-tema-novo" class="form-control form-control-sm mb-2" placeholder="Deixe em branco pra qualquer temática">
+                <p class="text-secondary small mb-2" id="txt-custo-tema-novo">Custa <strong>—</strong> crédito(s) e é gerado na hora pela IA.</p>
+                <button id="btn-pedir-tema-novo" class="btn btn-outline-primary">
+                    <i class="bi bi-stars"></i> Pedir tema novo
+                </button>
+                <div id="msg-pedir-tema" class="small mt-2"></div>
+            </div>
+        </div>
+
+        <!-- ===================== ETAPA 4: TEMA ESCOLHIDO → ESCREVER ===================== -->
+        <div id="etapa-escrever" class="d-none">
+            <button type="button" id="btn-trocar-tema" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Escolher outro tema
+            </button>
+            <div class="card-soft mb-3" style="max-width:700px;">
+                <div class="text-secondary small mb-1" id="badge-contexto-escrever"></div>
+                <h1 class="h5 fw-bold mb-2" id="titulo-tema-escolhido"></h1>
+                <p class="small text-secondary" id="motivador-tema-escolhido" style="white-space:pre-wrap;"></p>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-lightbulb"></i> Precisa de uma ajuda?</h2>
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-sugestao" data-tipo="exemplo">
+                        <i class="bi bi-file-text"></i> Ver uma redação de exemplo
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-sugestao" data-tipo="esqueleto">
+                        <i class="bi bi-list-check"></i> Ver um esqueleto/estrutura
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-sugestao" data-tipo="guia_banca">
+                        <i class="bi bi-mortarboard"></i> Como escrever pra essa banca
+                    </button>
+                </div>
+                <div id="area-sugestao" class="d-none">
+                    <div class="border rounded p-2" style="background:#fff; max-height:320px; overflow-y:auto; white-space:pre-wrap;" id="conteudo-sugestao"></div>
+                    <div id="msg-sugestao" class="small mt-1"></div>
+                </div>
+            </div>
+
+            <div class="card-soft" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-send"></i> Enviar sua redação</h2>
+
+                <div class="btn-group mb-3" role="group">
+                    <input type="radio" class="btn-check" name="modo-envio" id="modo-envio-texto" value="texto" checked>
+                    <label class="btn btn-outline-secondary btn-sm" for="modo-envio-texto"><i class="bi bi-keyboard"></i> Digitar texto</label>
+                    <input type="radio" class="btn-check" name="modo-envio" id="modo-envio-foto" value="foto">
+                    <label class="btn btn-outline-secondary btn-sm" for="modo-envio-foto"><i class="bi bi-camera"></i> Enviar foto</label>
+                </div>
+
+                <div id="bloco-envio-texto">
+                    <textarea id="input-texto-redacao" class="form-control mb-1" rows="14" placeholder="Escreva sua redação aqui..."></textarea>
+                    <div class="text-secondary small mb-3" id="contador-palavras">0 palavras</div>
+                </div>
+
+                <div id="bloco-envio-foto" class="d-none">
+                    <input type="file" id="input-foto-redacao" class="form-control mb-2" accept="image/*">
+                    <img id="preview-foto-redacao" src="" alt="" class="d-none mb-2" style="max-width:100%; max-height:300px; border-radius:8px; border:1px solid #eee;">
+                    <p class="text-secondary small mb-3">Tire uma foto bem iluminada e legível da sua redação manuscrita.</p>
+                </div>
+
+                <p class="text-secondary small mb-2" id="txt-custo-correcao">Custa <strong>—</strong> crédito(s).</p>
+                <button id="btn-enviar-correcao" class="btn btn-gold w-100">
+                    <i class="bi bi-send-check"></i> Enviar para correção
+                </button>
+                <div id="msg-envio-correcao" class="small mt-2"></div>
+            </div>
+        </div>
+
+        <!-- ===================== ETAPA 5: RESULTADO DA CORREÇÃO (próxima etapa a construir) ===================== -->
+        <div id="etapa-resultado" class="d-none">
+            <button type="button" id="btn-voltar-do-resultado" class="btn btn-outline-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Escolher outro tema
+            </button>
+
+            <div class="card-soft mb-3 text-center" style="max-width:700px;">
+                <div class="text-secondary small mb-1">Nota final</div>
+                <div class="display-5 fw-bold" id="nota-final-resultado">—</div>
+                <div class="text-secondary small">de 1000 pontos</div>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-3"><i class="bi bi-list-check"></i> Competências</h2>
+                <div id="lista-competencias" class="d-flex flex-column gap-3"></div>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-chat-square-text"></i> Feedback geral</h2>
+                <p class="small mb-0" id="txt-feedback-geral"></p>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-graph-up-arrow"></i> Sugestões de melhoria</h2>
+                <p class="small mb-0" id="txt-sugestoes-melhoria"></p>
+            </div>
+
+            <div class="card-soft" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-question-circle"></i> Perguntar sobre essa correção</h2>
+                <div id="lista-perguntas" class="d-flex flex-column gap-2 mb-3"></div>
+                <p class="text-secondary small mb-2" id="txt-custo-pergunta">Custa <strong>—</strong> crédito(s) por pergunta.</p>
+                <div class="d-flex gap-2">
+                    <input type="text" id="input-pergunta" class="form-control form-control-sm" placeholder="Ex: por que perdi pontos na competência 3?">
+                    <button id="btn-enviar-pergunta" class="btn btn-outline-primary btn-sm text-nowrap">Perguntar</button>
+                </div>
+                <div id="msg-pergunta" class="small mt-2"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/supabase-config.js"></script>
+<script>
+let userId = null;
+let listaConcursos = [];
+let contextoAtual = null; // { concurso_id, concurso_nome, banca_id, banca_nome }
+let temaEscolhido = null;
+let custoTemaNovo = 0;
+let custoCorrecaoTexto = 0;
+let custoCorrecaoImagem = 0;
+let custoPergunta = 0;
+let arquivoFotoSelecionado = null;
+let redacaoAtualId = null;
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+    await atualizarSaldo();
+
+    const { data: precoRow } = await supabaseClient.from('config_precos').select('valor_creditos').eq('acao', 'redacao_tema').single();
+    custoTemaNovo = Number(precoRow?.valor_creditos ?? 0);
+    document.getElementById('txt-custo-tema-novo').innerHTML = `Custa <strong>${custoTemaNovo} crédito(s)</strong> e é gerado na hora pela IA.`;
+
+    const { data: precoTexto } = await supabaseClient.from('config_precos').select('valor_creditos').eq('acao', 'redacao_correcao_texto').single();
+    const { data: precoImagem } = await supabaseClient.from('config_precos').select('valor_creditos').eq('acao', 'redacao_correcao_imagem').single();
+    custoCorrecaoTexto = Number(precoTexto?.valor_creditos ?? 0);
+    custoCorrecaoImagem = Number(precoImagem?.valor_creditos ?? 0);
+    atualizarTextoCustoCorrecao();
+
+    const { data: precoPergunta } = await supabaseClient.from('config_precos').select('valor_creditos').eq('acao', 'redacao_pergunta').single();
+    custoPergunta = Number(precoPergunta?.valor_creditos ?? 0);
+    document.getElementById('txt-custo-pergunta').innerHTML = `Custa <strong>${custoPergunta} crédito(s)</strong> por pergunta.`;
+
+    const { data: concursos } = await supabaseClient.from('concursos').select('id, nome, banca_id, logo_url').eq('ativo', true).order('nome');
+    listaConcursos = concursos || [];
+
+    const { data: bancas } = await supabaseClient.from('perfis_banca').select('id, nome').eq('ativo', true).order('nome');
+    const selectBanca = document.getElementById('select-banca-avulso');
+    (bancas || []).forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.nome;
+        selectBanca.appendChild(opt);
+    });
+})();
+
+async function atualizarSaldo() {
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+    return perfil?.saldo_creditos ?? 0;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function mostrarEtapa(id) {
+    ['etapa-origem', 'etapa-escolher-concurso', 'etapa-escolher-banca', 'etapa-tema', 'etapa-escrever', 'etapa-resultado'].forEach(e => {
+        document.getElementById(e).classList.toggle('d-none', e !== id);
+    });
+}
+
+// ================= ETAPA 1: origem =================
+
+document.getElementById('btn-origem-concurso').addEventListener('click', () => {
+    mostrarEtapa('etapa-escolher-concurso');
+    montarGridConcursos(listaConcursos);
+});
+
+document.getElementById('btn-origem-avulso').addEventListener('click', () => {
+    mostrarEtapa('etapa-escolher-banca');
+});
+
+document.querySelectorAll('.btn-voltar-origem').forEach(btn => {
+    btn.addEventListener('click', () => mostrarEtapa('etapa-origem'));
+});
+
+// ================= ETAPA 2a: escolher concurso =================
+
+function montarGridConcursos(concursos) {
+    const grid = document.getElementById('grid-concursos-icone');
+    grid.innerHTML = '';
+
+    if (!concursos.length) {
+        grid.innerHTML = '<div class="small text-secondary fst-italic">Nenhum concurso encontrado.</div>';
+        return;
+    }
+
+    concursos.forEach(c => {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3';
+        const iconeHtml = c.logo_url
+            ? `<img src="${escapeHtml(c.logo_url)}" alt="" style="width:40px; height:40px; object-fit:contain;" onerror="this.replaceWith(Object.assign(document.createElement('i'), {className:'bi bi-mortarboard fs-2'}))">`
+            : '<i class="bi bi-mortarboard fs-2"></i>';
+        col.innerHTML = `
+            <button type="button" class="btn btn-outline-secondary w-100 card-concurso-icone" data-id="${c.id}">
+                ${iconeHtml}
+                <span class="small">${escapeHtml(c.nome)}</span>
+            </button>`;
+        col.querySelector('button').addEventListener('click', () => escolherConcurso(c));
+        grid.appendChild(col);
+    });
+}
+
+document.getElementById('input-filtro-concurso').addEventListener('input', (e) => {
+    const termo = e.target.value.trim().toLowerCase();
+    const filtrados = termo ? listaConcursos.filter(c => c.nome.toLowerCase().includes(termo)) : listaConcursos;
+    montarGridConcursos(filtrados);
+});
+
+async function escolherConcurso(c) {
+    let nomeBanca = null;
+    if (c.banca_id) {
+        const { data: banca } = await supabaseClient.from('perfis_banca').select('nome').eq('id', c.banca_id).single();
+        nomeBanca = banca?.nome || null;
+    }
+    contextoAtual = { concurso_id: c.id, concurso_nome: c.nome, banca_id: c.banca_id || null, banca_nome: nomeBanca };
+    abrirEtapaTema();
+}
+
+// ================= ETAPA 2b: escolher banca (avulso) =================
+
+document.getElementById('btn-confirmar-avulso').addEventListener('click', () => {
+    const select = document.getElementById('select-banca-avulso');
+    const bancaId = select.value || null;
+    const bancaNome = bancaId ? select.options[select.selectedIndex].textContent : null;
+    contextoAtual = { concurso_id: null, concurso_nome: null, banca_id: bancaId, banca_nome: bancaNome };
+    abrirEtapaTema();
+});
+
+// ================= ETAPA 3: escolher o tema =================
+
+async function abrirEtapaTema() {
+    mostrarEtapa('etapa-tema');
+
+    if (contextoAtual.concurso_id) {
+        document.getElementById('titulo-contexto-tema').textContent = contextoAtual.concurso_nome;
+        document.getElementById('subtitulo-contexto-tema').textContent = contextoAtual.banca_nome
+            ? `Banca: ${contextoAtual.banca_nome}` : 'Sem banca definida pra esse concurso ainda.';
+    } else {
+        document.getElementById('titulo-contexto-tema').textContent = 'Treino avulso';
+        document.getElementById('subtitulo-contexto-tema').textContent = contextoAtual.banca_nome
+            ? `Estilo: ${contextoAtual.banca_nome}` : 'Sem banca específica (genérico).';
+    }
+
+    document.getElementById('msg-pedir-tema').textContent = '';
+    document.getElementById('input-busca-tema').value = '';
+    document.getElementById('input-tematica-tema-novo').value = '';
+    await carregarTemasExistentes();
+}
+
+document.querySelectorAll('.btn-voltar-contexto').forEach(btn => {
+    btn.addEventListener('click', () => {
+        mostrarEtapa(contextoAtual && contextoAtual.concurso_id ? 'etapa-escolher-concurso' : 'etapa-escolher-banca');
+    });
+});
+
+const TEMAS_POR_PAGINA = 10;
+let offsetTemasExistentes = 0;
+let termoBuscaTemaAtual = '';
+let infoRedacoesUsuario = new Map(); // tema_id -> { tentativas, melhorNota }
+
+function montarQueryTemasExistentes(termo) {
+    let query = supabaseClient.from('temas_redacao').select('id, titulo, texto_motivador, banca_id, concurso_id').order('criado_em', { ascending: false });
+    if (contextoAtual.concurso_id) {
+        query = query.eq('concurso_id', contextoAtual.concurso_id);
+    } else if (contextoAtual.banca_id) {
+        query = query.is('concurso_id', null).eq('banca_id', contextoAtual.banca_id);
+    } else {
+        query = query.is('concurso_id', null).is('banca_id', null);
+    }
+    if (termo) query = query.ilike('titulo', `%${termo}%`);
+    return query;
+}
+
+function renderCardTema(t, listaEl) {
+    const card = document.createElement('div');
+    card.className = 'border rounded p-2';
+
+    const info = infoRedacoesUsuario.get(t.id);
+    const avisoHtml = info
+        ? `<div class="small mb-2"><span class="badge text-bg-warning-subtle text-dark border"><i class="bi bi-clock-history"></i> Você já escreveu esse ${info.tentativas > 1 ? `(${info.tentativas}x)` : ''} — melhor nota: <strong>${info.melhorNota ?? '—'}</strong></span></div>`
+        : '';
+
+    card.innerHTML = `
+        <div class="fw-semibold small">${escapeHtml(t.titulo)}</div>
+        ${avisoHtml}
+        <div class="text-secondary small mb-2" style="white-space:pre-wrap;">${escapeHtml(t.texto_motivador || '')}</div>
+        <button type="button" class="btn btn-outline-primary btn-sm">${info ? 'Escrever de novo' : 'Escrever sobre esse tema'}</button>
+    `;
+    card.querySelector('button').addEventListener('click', () => selecionarTema(t));
+    listaEl.appendChild(card);
+}
+
+// Busca em lote, pra um conjunto de tema_ids, se o usuário já escreveu sobre eles
+// (quantas vezes e qual a melhor nota), pra avisar antes de escrever de novo à toa.
+async function buscarInfoRedacoesUsuario(idsTemas) {
+    if (!idsTemas.length) return new Map();
+
+    const { data: minhasRedacoes } = await supabaseClient
+        .from('redacoes_usuario')
+        .select('id, tema_id')
+        .eq('usuario_id', userId)
+        .in('tema_id', idsTemas);
+
+    if (!minhasRedacoes || !minhasRedacoes.length) return new Map();
+
+    const idsRedacoes = minhasRedacoes.map(r => r.id);
+    const { data: correcoes } = await supabaseClient
+        .from('correcoes_redacao')
+        .select('redacao_id, nota_final')
+        .in('redacao_id', idsRedacoes);
+
+    const notaPorRedacaoId = new Map((correcoes || []).map(c => [c.redacao_id, Number(c.nota_final)]));
+
+    const mapa = new Map();
+    minhasRedacoes.forEach(r => {
+        const nota = notaPorRedacaoId.get(r.id);
+        const atual = mapa.get(r.tema_id) || { tentativas: 0, melhorNota: null };
+        atual.tentativas++;
+        if (nota != null && (atual.melhorNota == null || nota > atual.melhorNota)) atual.melhorNota = nota;
+        mapa.set(r.tema_id, atual);
+    });
+    return mapa;
+}
+
+async function carregarTemasExistentes(termo) {
+    termoBuscaTemaAtual = termo ?? '';
+    offsetTemasExistentes = 0;
+
+    const listaEl = document.getElementById('lista-temas-existentes');
+    const vazioEl = document.getElementById('vazio-temas-existentes');
+    const btnMais = document.getElementById('btn-carregar-mais-temas');
+    listaEl.innerHTML = '<div class="small text-secondary">Carregando...</div>';
+    btnMais.classList.add('d-none');
+
+    const query = montarQueryTemasExistentes(termoBuscaTemaAtual).range(0, TEMAS_POR_PAGINA - 1);
+    const { data: temas } = await query;
+    listaEl.innerHTML = '';
+
+    if (!temas || temas.length === 0) {
+        vazioEl.classList.remove('d-none');
+        return;
+    }
+    vazioEl.classList.add('d-none');
+
+    const novaInfo = await buscarInfoRedacoesUsuario(temas.map(t => t.id));
+    novaInfo.forEach((v, k) => infoRedacoesUsuario.set(k, v));
+
+    temas.forEach(t => renderCardTema(t, listaEl));
+    offsetTemasExistentes = temas.length;
+    btnMais.classList.toggle('d-none', temas.length < TEMAS_POR_PAGINA);
+}
+
+document.getElementById('btn-carregar-mais-temas').addEventListener('click', async () => {
+    const btnMais = document.getElementById('btn-carregar-mais-temas');
+    const listaEl = document.getElementById('lista-temas-existentes');
+    btnMais.disabled = true;
+    btnMais.textContent = 'Carregando...';
+
+    const query = montarQueryTemasExistentes(termoBuscaTemaAtual).range(offsetTemasExistentes, offsetTemasExistentes + TEMAS_POR_PAGINA - 1);
+    const { data: temas } = await query;
+
+    btnMais.disabled = false;
+    btnMais.textContent = 'Carregar mais';
+
+    const novaInfo = await buscarInfoRedacoesUsuario((temas || []).map(t => t.id));
+    novaInfo.forEach((v, k) => infoRedacoesUsuario.set(k, v));
+
+    (temas || []).forEach(t => renderCardTema(t, listaEl));
+    offsetTemasExistentes += (temas || []).length;
+    btnMais.classList.toggle('d-none', !temas || temas.length < TEMAS_POR_PAGINA);
+});
+
+let debounceTemaTimer = null;
+document.getElementById('input-busca-tema').addEventListener('input', (e) => {
+    clearTimeout(debounceTemaTimer);
+    const termo = e.target.value.trim();
+    debounceTemaTimer = setTimeout(() => carregarTemasExistentes(termo), 350);
+});
+
+document.getElementById('btn-pedir-tema-novo').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-pedir-tema-novo');
+    const msgEl = document.getElementById('msg-pedir-tema');
+    msgEl.className = 'small mt-2';
+    msgEl.textContent = '';
+
+    const saldo = await atualizarSaldo();
+    if (saldo < custoTemaNovo) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = `Créditos insuficientes (precisa de ${custoTemaNovo}, você tem ${saldo}).`;
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando tema...';
+
+    const { data, error } = await supabaseClient.functions.invoke('gerar-tema-redacao', {
+        body: {
+            concurso_id: contextoAtual.concurso_id || null,
+            banca_id: contextoAtual.banca_id || null,
+            area_tematica: document.getElementById('input-tematica-tema-novo').value.trim() || null,
+        }
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-stars"></i> Pedir tema novo';
+
+    if (error || data?.error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = data?.error || error.message;
+        return;
+    }
+
+    await atualizarSaldo();
+    await carregarTemasExistentes();
+    selecionarTema(data.tema);
+});
+
+function selecionarTema(tema) {
+    temaEscolhido = tema;
+    mostrarEtapa('etapa-escrever');
+
+    document.getElementById('badge-contexto-escrever').textContent = contextoAtual.concurso_nome
+        ? `${contextoAtual.concurso_nome}${contextoAtual.banca_nome ? ' · ' + contextoAtual.banca_nome : ''}`
+        : (contextoAtual.banca_nome ? `Avulso · ${contextoAtual.banca_nome}` : 'Avulso · genérico');
+    document.getElementById('titulo-tema-escolhido').textContent = tema.titulo;
+    document.getElementById('motivador-tema-escolhido').textContent = tema.texto_motivador || '';
+
+    document.getElementById('input-texto-redacao').value = '';
+    document.getElementById('contador-palavras').textContent = '0 palavras';
+    document.getElementById('input-foto-redacao').value = '';
+    document.getElementById('preview-foto-redacao').classList.add('d-none');
+    arquivoFotoSelecionado = null;
+    document.getElementById('area-sugestao').classList.add('d-none');
+    document.getElementById('msg-envio-correcao').textContent = '';
+    document.getElementById('modo-envio-texto').checked = true;
+    document.getElementById('bloco-envio-texto').classList.remove('d-none');
+    document.getElementById('bloco-envio-foto').classList.add('d-none');
+    atualizarTextoCustoCorrecao();
+}
+
+document.getElementById('btn-trocar-tema').addEventListener('click', () => {
+    temaEscolhido = null;
+    abrirEtapaTema();
+});
+
+// ================= ETAPA 4: escrever / enviar =================
+
+function atualizarTextoCustoCorrecao() {
+    const modo = document.querySelector('input[name="modo-envio"]:checked').value;
+    const custo = modo === 'foto' ? custoCorrecaoImagem : custoCorrecaoTexto;
+    document.getElementById('txt-custo-correcao').innerHTML = `Custa <strong>${custo} crédito(s)</strong>${modo === 'foto' ? ' (correção por foto custa mais, por causa da leitura da imagem)' : ''}.`;
+}
+
+document.querySelectorAll('input[name="modo-envio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const modo = document.querySelector('input[name="modo-envio"]:checked').value;
+        document.getElementById('bloco-envio-texto').classList.toggle('d-none', modo !== 'texto');
+        document.getElementById('bloco-envio-foto').classList.toggle('d-none', modo !== 'foto');
+        atualizarTextoCustoCorrecao();
+    });
+});
+
+document.getElementById('input-texto-redacao').addEventListener('input', (e) => {
+    const palavras = e.target.value.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('contador-palavras').textContent = `${palavras} palavra${palavras === 1 ? '' : 's'}`;
+});
+
+document.getElementById('input-foto-redacao').addEventListener('change', (e) => {
+    const arquivo = e.target.files[0];
+    arquivoFotoSelecionado = arquivo || null;
+    const preview = document.getElementById('preview-foto-redacao');
+    if (arquivo) {
+        preview.src = URL.createObjectURL(arquivo);
+        preview.classList.remove('d-none');
+    } else {
+        preview.classList.add('d-none');
+    }
+});
+
+// ---------- Botões de sugestão (exemplo / esqueleto / guia da banca) ----------
+document.querySelectorAll('.btn-sugestao').forEach(btn => {
+    btn.addEventListener('click', () => pedirSugestao(btn.dataset.tipo, btn));
+});
+
+async function pedirSugestao(tipo, btnEl) {
+    const areaEl = document.getElementById('area-sugestao');
+    const conteudoEl = document.getElementById('conteudo-sugestao');
+    const msgEl = document.getElementById('msg-sugestao');
+
+    const original = btnEl.innerHTML;
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Carregando...';
+    areaEl.classList.remove('d-none');
+    conteudoEl.textContent = '';
+    msgEl.textContent = '';
+
+    const { data, error } = await supabaseClient.functions.invoke('redacao-sugestoes', {
+        body: { tema_id: temaEscolhido.id, tipo }
+    });
+
+    btnEl.disabled = false;
+    btnEl.innerHTML = original;
+
+    if (error || data?.error) {
+        msgEl.className = 'small mt-1 text-danger';
+        msgEl.textContent = data?.error || error.message;
+        return;
+    }
+
+    conteudoEl.textContent = data.conteudo;
+    msgEl.className = 'small mt-1 text-secondary';
+    msgEl.textContent = data.veio_do_cache ? 'Conteúdo já existente, reaproveitado.' : 'Gerado agora pela IA.';
+    await atualizarSaldo();
+}
+
+// ---------- Enviar pra correção ----------
+document.getElementById('btn-enviar-correcao').addEventListener('click', enviarParaCorrecao);
+
+async function enviarParaCorrecao() {
+    const btn = document.getElementById('btn-enviar-correcao');
+    const msgEl = document.getElementById('msg-envio-correcao');
+    msgEl.className = 'small mt-2';
+    msgEl.textContent = '';
+
+    const modo = document.querySelector('input[name="modo-envio"]:checked').value;
+    const custo = modo === 'foto' ? custoCorrecaoImagem : custoCorrecaoTexto;
+
+    const saldo = await atualizarSaldo();
+    if (saldo < custo) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = `Créditos insuficientes (precisa de ${custo}, você tem ${saldo}).`;
+        return;
+    }
+
+    const payload = { tema_id: temaEscolhido.id };
+
+    if (modo === 'texto') {
+        const texto = document.getElementById('input-texto-redacao').value.trim();
+        if (!texto) {
+            msgEl.className = 'small mt-2 text-danger';
+            msgEl.textContent = 'Escreva sua redação antes de enviar.';
+            return;
+        }
+        payload.texto_redacao = texto;
+    } else {
+        if (!arquivoFotoSelecionado) {
+            msgEl.className = 'small mt-2 text-danger';
+            msgEl.textContent = 'Selecione uma foto antes de enviar.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando foto...';
+
+        const nomeArquivo = `${Date.now()}_${arquivoFotoSelecionado.name}`.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const caminho = `${userId}/${nomeArquivo}`;
+        const { error: erroUpload } = await supabaseClient.storage.from('redacoes').upload(caminho, arquivoFotoSelecionado, {
+            contentType: arquivoFotoSelecionado.type,
+        });
+
+        if (erroUpload) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-check"></i> Enviar para correção';
+            msgEl.className = 'small mt-2 text-danger';
+            msgEl.textContent = 'Erro ao enviar a foto: ' + erroUpload.message;
+            return;
+        }
+
+        payload.imagem_path = caminho;
+        payload.imagem_mime_type = arquivoFotoSelecionado.type;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Corrigindo... isso pode levar um tempo';
+
+    const { data, error } = await supabaseClient.functions.invoke('corrigir-redacao', { body: payload });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send-check"></i> Enviar para correção';
+
+    if (error || data?.error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = data?.error || error.message;
+        return;
+    }
+
+    await atualizarSaldo();
+    mostrarResultadoCorrecao(data);
+}
+
+function corDaNota(nota, max) {
+    const pct = (nota / max) * 100;
+    if (pct >= 70) return 'text-success';
+    if (pct >= 40) return 'text-warning';
+    return 'text-danger';
+}
+
+function mostrarResultadoCorrecao(data) {
+    mostrarEtapa('etapa-resultado');
+    redacaoAtualId = data.redacao.id;
+
+    const nota = Number(data.correcao.nota_final) || 0;
+    const notaEl = document.getElementById('nota-final-resultado');
+    notaEl.textContent = nota;
+    notaEl.className = 'display-5 fw-bold ' + corDaNota(nota, 1000);
+
+    const listaEl = document.getElementById('lista-competencias');
+    listaEl.innerHTML = '';
+    (data.correcao.competencias || []).forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'border-bottom pb-2';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small fw-semibold">${c.numero}. ${escapeHtml(c.nome)}</span>
+                <span class="small fw-bold ${corDaNota(c.nota, 200)}">${c.nota}/200</span>
+            </div>
+            <p class="small text-secondary mb-0">${escapeHtml(c.comentario)}</p>
+        `;
+        listaEl.appendChild(div);
+    });
+
+    document.getElementById('txt-feedback-geral').textContent = data.correcao.feedback_geral || '';
+    document.getElementById('txt-sugestoes-melhoria').textContent = data.correcao.sugestoes_melhoria || '';
+
+    document.getElementById('lista-perguntas').innerHTML = '';
+    document.getElementById('input-pergunta').value = '';
+    document.getElementById('msg-pergunta').textContent = '';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('btn-voltar-do-resultado').addEventListener('click', () => {
+    temaEscolhido = null;
+    redacaoAtualId = null;
+    document.getElementById('input-texto-redacao').value = '';
+    document.getElementById('input-foto-redacao').value = '';
+    document.getElementById('preview-foto-redacao').classList.add('d-none');
+    arquivoFotoSelecionado = null;
+    document.getElementById('area-sugestao').classList.add('d-none');
+    abrirEtapaTema();
+});
+
+// ---------- Chat de perguntas sobre a correção ----------
+
+function adicionarPerguntaNaLista(pergunta, resposta) {
+    const listaEl = document.getElementById('lista-perguntas');
+    const div = document.createElement('div');
+    div.className = 'border rounded p-2';
+    div.innerHTML = `
+        <div class="small fw-semibold mb-1"><i class="bi bi-person-circle"></i> ${escapeHtml(pergunta)}</div>
+        <div class="small text-secondary" style="white-space:pre-wrap;"><i class="bi bi-robot"></i> ${escapeHtml(resposta)}</div>
+    `;
+    listaEl.appendChild(div);
+}
+
+document.getElementById('btn-enviar-pergunta').addEventListener('click', enviarPergunta);
+document.getElementById('input-pergunta').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') enviarPergunta();
+});
+
+async function enviarPergunta() {
+    const inputEl = document.getElementById('input-pergunta');
+    const msgEl = document.getElementById('msg-pergunta');
+    const btn = document.getElementById('btn-enviar-pergunta');
+    const pergunta = inputEl.value.trim();
+
+    if (!pergunta) return;
+    if (!redacaoAtualId) return;
+
+    const saldo = await atualizarSaldo();
+    if (saldo < custoPergunta) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = `Créditos insuficientes (precisa de ${custoPergunta}, você tem ${saldo}).`;
+        return;
+    }
+
+    btn.disabled = true;
+    inputEl.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    msgEl.textContent = '';
+
+    const { data, error } = await supabaseClient.functions.invoke('perguntar-redacao', {
+        body: { redacao_id: redacaoAtualId, pergunta }
+    });
+
+    btn.disabled = false;
+    inputEl.disabled = false;
+    btn.textContent = 'Perguntar';
+
+    if (error || data?.error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = data?.error || error.message;
+        return;
+    }
+
+    adicionarPerguntaNaLista(data.pergunta.pergunta, data.pergunta.resposta);
+    inputEl.value = '';
+    await atualizarSaldo();
+}
+</script>
+
+</body>
+</html>

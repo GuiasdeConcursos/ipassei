@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Financeiro — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="financeiro.html" class="nav-link active"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Financeiro</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="alert alert-light border small" style="max-width:850px;">
+            <i class="bi bi-info-circle"></i> O <strong>custo</strong> aqui é uma <strong>estimativa</strong> (você configura quanto acha que cada ação custa em R$, baseado no preço por token do seu provedor de IA e um tamanho médio de prompt/resposta) — não é medido chamada por chamada. A <strong>receita</strong> é real, vinda dos pagamentos PIX confirmados.
+        </div>
+
+        <div class="row g-2 mb-3 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">De</label>
+                <input type="date" id="filtro-data-inicio" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Até</label>
+                <input type="date" id="filtro-data-fim" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <button id="btn-filtrar" class="btn btn-navy btn-sm">Filtrar</button>
+                <button id="btn-limpar" class="btn btn-outline-secondary btn-sm">Limpar (tudo)</button>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-piggy-bank"></i> Receita real (PIX)</div>
+                    <div class="h4 fw-bold mb-0 text-success" id="stat-receita">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-cpu"></i> Custo estimado (IA)</div>
+                    <div class="h4 fw-bold mb-0 text-danger" id="stat-custo">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-graph-up-arrow"></i> Resultado líquido</div>
+                    <div class="h4 fw-bold mb-0" id="stat-liquido">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-percent"></i> Margem</div>
+                    <div class="h4 fw-bold mb-0" id="stat-margem">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-soft mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <h2 class="h6 fw-bold mb-0"><i class="bi bi-coin"></i> Referência: R$ por crédito</h2>
+                <span class="small text-secondary" id="txt-valor-credito"></span>
+            </div>
+            <p class="text-secondary small mb-0">Calculado a partir dos pacotes de créditos ativos (preço médio ponderado). Usado pra estimar a receita "equivalente" de cada ação e sugerir preços no simulador abaixo.</p>
+        </div>
+
+        <div class="card-soft mb-4">
+            <h2 class="h6 fw-bold mb-1"><i class="bi bi-currency-exchange"></i> Cotação do dólar</h2>
+            <p class="text-secondary small mb-2">Usada só pra converter o preço em USD dos provedores (configurado em "Provedores IA") pra R$ no cálculo de custo real. Atualiza manualmente quando quiser.</p>
+            <div class="d-flex gap-2 align-items-center" style="max-width:220px;">
+                <span class="input-group-text">R$</span>
+                <input type="number" step="0.01" min="0" id="input-cotacao-dolar" class="form-control form-control-sm">
+                <button id="btn-salvar-cotacao" class="btn btn-outline-primary btn-sm text-nowrap">Salvar</button>
+            </div>
+        </div>
+
+        <div class="card-soft mb-4">
+            <h2 class="h6 fw-bold mb-3"><i class="bi bi-table"></i> Por ação — custo, preço e margem</h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr class="text-secondary small">
+                            <th>Ação</th>
+                            <th class="text-center">Execuções</th>
+                            <th class="text-center">Preço cobrado</th>
+                            <th class="text-center" style="min-width:130px;">Custo estimado / execução</th>
+                            <th class="text-center">Custo total</th>
+                            <th class="text-center">Receita equivalente</th>
+                            <th class="text-center">Margem</th>
+                            <th class="text-center" style="min-width:220px;">Simulador (margem desejada)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-acoes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-soft">
+            <h2 class="h6 fw-bold mb-2"><i class="bi bi-journal-text"></i> Referência de preços Gemini (pra te ajudar a estimar o custo)</h2>
+            <p class="text-secondary small mb-2">Preços por milhão de tokens, conferidos em agosto/2026 — varia bastante por modelo, confirma qual você tem configurado em "Provedores IA":</p>
+            <div class="table-responsive">
+                <table class="table table-sm small mb-0">
+                    <thead><tr class="text-secondary"><th>Modelo</th><th>Entrada</th><th>Saída</th></tr></thead>
+                    <tbody>
+                        <tr><td>Gemini 2.5 Flash-Lite</td><td>$0,10</td><td>$0,40</td></tr>
+                        <tr><td>Gemini 2.5 Flash</td><td>$0,30</td><td>$2,50</td></tr>
+                        <tr><td>Gemini 3 Flash</td><td>$0,50</td><td>$3,00</td></tr>
+                        <tr><td>Gemini 3.6 Flash</td><td>$1,50</td><td>$7,50</td></tr>
+                        <tr><td>Gemini 2.5 Pro</td><td>$1,25</td><td>$10,00</td></tr>
+                        <tr><td>Gemini 3.1 Pro (até 200k contexto)</td><td>$2,00</td><td>$12,00</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-secondary small mt-2 mb-0">
+                Conta rápida: uma questão gerada costuma usar uns 800-1.500 tokens de entrada (prompt + contexto) e 300-600 de saída (JSON da questão). No Flash-Lite, isso dá bem menos de R$ 0,01 por questão; no Flash "normal", ainda fica abaixo de R$ 0,01 na maioria dos casos. Ajuste conforme o tamanho real dos seus prompts.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+const rotulosAcao = {
+    gerar_questao_inedita: 'Gerar questão inédita',
+    admin_gerar_questoes_preview: 'Admin — gerar questão (revisão)',
+    extrair_questoes_pdf: 'Admin — extrair questões de PDF',
+    responder_existente: 'Responder questão existente',
+    ver_explicacao: 'Ver explicação detalhada',
+    ver_materia: 'Ver matéria explicativa',
+    revisar_questao_respondida: 'Revisar questão já respondida',
+    redacao_tema: 'Redação — pedir tema',
+    redacao_correcao_texto: 'Redação — correção (texto)',
+    redacao_correcao_imagem: 'Redação — correção (imagem)',
+    redacao_pergunta: 'Redação — perguntar sobre correção',
+    redacao_exemplo: 'Redação — ver exemplo',
+    redacao_esqueleto: 'Redação — ver esqueleto',
+    redacao_guia_banca: 'Redação — guia da banca',
+    recompensa_questao_usuario: 'Recompensa — questão de usuário respondida',
+};
+
+let valorPorCredito = 0;
+let precosCarregados = [];
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    await carregarValorPorCredito();
+    await carregarConfigFinanceira();
+    await carregarTudo();
+})();
+
+document.getElementById('btn-filtrar').addEventListener('click', carregarTudo);
+document.getElementById('btn-limpar').addEventListener('click', () => {
+    document.getElementById('filtro-data-inicio').value = '';
+    document.getElementById('filtro-data-fim').value = '';
+    carregarTudo();
+});
+
+async function carregarValorPorCredito() {
+    const { data: pacotes } = await supabaseClient
+        .from('pacotes_creditos').select('preco_reais, quantidade_creditos').eq('ativo', true);
+
+    if (!pacotes || pacotes.length === 0) {
+        valorPorCredito = 0;
+        document.getElementById('txt-valor-credito').textContent = 'Nenhum pacote ativo cadastrado.';
+        return;
+    }
+
+    const totalReais = pacotes.reduce((s, p) => s + Number(p.preco_reais), 0);
+    const totalCreditos = pacotes.reduce((s, p) => s + Number(p.quantidade_creditos), 0);
+    valorPorCredito = totalCreditos > 0 ? totalReais / totalCreditos : 0;
+
+    document.getElementById('txt-valor-credito').textContent =
+        `R$ ${valorPorCredito.toFixed(3)} por crédito (média de ${pacotes.length} pacote(s) ativo(s))`;
+}
+
+let cotacaoDolar = 5.30;
+let precosPorProvedor = new Map(); // provedor_id -> {input, output} USD/1M
+
+async function carregarConfigFinanceira() {
+    const { data: config } = await supabaseClient.from('config_financeiro').select('*').maybeSingle();
+    cotacaoDolar = config ? Number(config.cotacao_dolar) : 5.30;
+    document.getElementById('input-cotacao-dolar').value = cotacaoDolar;
+
+    const { data: provedores } = await supabaseClient
+        .from('provedores_ia').select('id, preco_input_usd_por_milhao, preco_output_usd_por_milhao');
+    precosPorProvedor = new Map((provedores || []).map(p => [p.id, {
+        input: Number(p.preco_input_usd_por_milhao || 0),
+        output: Number(p.preco_output_usd_por_milhao || 0),
+    }]));
+}
+
+document.getElementById('btn-salvar-cotacao').addEventListener('click', async () => {
+    const valor = parseFloat(document.getElementById('input-cotacao-dolar').value);
+    if (isNaN(valor) || valor <= 0) { alert('Cotação inválida.'); return; }
+    const { error } = await supabaseClient.from('config_financeiro').update({ cotacao_dolar: valor, atualizado_em: new Date().toISOString() }).eq('id', true);
+    if (error) { alert('Erro: ' + error.message); return; }
+    cotacaoDolar = valor;
+    carregarTudo();
+});
+
+function calcularCustoReaisDeRegistro(registro) {
+    const precos = precosPorProvedor.get(registro.provedor_ia_id);
+    if (!precos) return 0;
+    const custoUsd = (registro.tokens_entrada / 1_000_000) * precos.input + (registro.tokens_saida / 1_000_000) * precos.output;
+    return custoUsd * cotacaoDolar;
+}
+
+async function carregarTudo() {
+    const dataInicio = document.getElementById('filtro-data-inicio').value;
+    const dataFim = document.getElementById('filtro-data-fim').value;
+
+    // ---- Receita real (PIX pago) ----
+    let queryPix = supabaseClient.from('pagamentos_pix').select('valor_reais').eq('status', 'pago');
+    if (dataInicio) queryPix = queryPix.gte('pago_em', dataInicio + 'T00:00:00');
+    if (dataFim) queryPix = queryPix.lte('pago_em', dataFim + 'T23:59:59');
+    const { data: pagamentos } = await queryPix;
+    const receitaTotal = (pagamentos || []).reduce((s, p) => s + Number(p.valor_reais), 0);
+
+    // ---- Preços/custos configurados ----
+    const { data: precos } = await supabaseClient.from('config_precos').select('*');
+    precosCarregados = precos || [];
+
+    // ---- Gastos por ação (transacoes_creditos, tipo='gasto') ----
+    let queryGastos = supabaseClient.from('transacoes_creditos').select('acao').eq('tipo', 'gasto');
+    if (dataInicio) queryGastos = queryGastos.gte('criado_em', dataInicio + 'T00:00:00');
+    if (dataFim) queryGastos = queryGastos.lte('criado_em', dataFim + 'T23:59:59');
+    const { data: gastos } = await queryGastos;
+
+    const execucoesPorAcao = {};
+    (gastos || []).forEach(g => {
+        const chave = g.acao || '(sem rótulo)';
+        execucoesPorAcao[chave] = (execucoesPorAcao[chave] || 0) + 1;
+    });
+
+    // ---- Custo REAL, a partir do uso de tokens registrado de verdade ----
+    let queryUso = supabaseClient.from('uso_ia_registro').select('acao, provedor_ia_id, tokens_entrada, tokens_saida');
+    if (dataInicio) queryUso = queryUso.gte('criado_em', dataInicio + 'T00:00:00');
+    if (dataFim) queryUso = queryUso.lte('criado_em', dataFim + 'T23:59:59');
+    const { data: usosIA } = await queryUso;
+
+    const custoRealPorAcao = {};
+    const execucoesReaisPorAcao = {};
+    (usosIA || []).forEach(u => {
+        const custo = calcularCustoReaisDeRegistro(u);
+        custoRealPorAcao[u.acao] = (custoRealPorAcao[u.acao] || 0) + custo;
+        execucoesReaisPorAcao[u.acao] = (execucoesReaisPorAcao[u.acao] || 0) + 1;
+    });
+
+    let custoTotalEstimado = 0;
+    let receitaEquivalenteTotal = 0;
+    const linhas = [];
+
+    precosCarregados.forEach(p => {
+        const execucoes = execucoesPorAcao[p.acao] || 0;
+        const temDadoReal = Object.prototype.hasOwnProperty.call(custoRealPorAcao, p.acao);
+        const custoTotal = temDadoReal ? custoRealPorAcao[p.acao] : execucoes * Number(p.custo_estimado_reais || 0);
+        const receitaEquivalente = execucoes * Number(p.valor_creditos || 0) * valorPorCredito;
+        custoTotalEstimado += custoTotal;
+        receitaEquivalenteTotal += receitaEquivalente;
+        linhas.push({ ...p, execucoes, custoTotal, receitaEquivalente, ehCustoReal: temDadoReal });
+    });
+
+    Object.keys(execucoesPorAcao).forEach(acao => {
+        if (!precosCarregados.find(p => p.acao === acao)) {
+            const temDadoReal = Object.prototype.hasOwnProperty.call(custoRealPorAcao, acao);
+            linhas.push({
+                acao, valor_creditos: 0, custo_estimado_reais: 0, execucoes: execucoesPorAcao[acao],
+                custoTotal: temDadoReal ? custoRealPorAcao[acao] : 0, receitaEquivalente: 0, ehCustoReal: temDadoReal,
+            });
+        }
+    });
+
+    // Ações que custam de verdade (têm registro real de tokens) mas NÃO cobram crédito
+    // do usuário (ex: ferramentas internas do admin) — sem isso, o custo delas some do total.
+    Object.keys(custoRealPorAcao).forEach(acao => {
+        const jaExiste = linhas.find(l => l.acao === acao);
+        if (!jaExiste) {
+            custoTotalEstimado += custoRealPorAcao[acao];
+            linhas.push({
+                acao, valor_creditos: 0, custo_estimado_reais: 0, execucoes: execucoesReaisPorAcao[acao] || 0,
+                custoTotal: custoRealPorAcao[acao], receitaEquivalente: 0, ehCustoReal: true,
+            });
+        }
+    });
+
+    linhas.sort((a, b) => b.execucoes - a.execucoes);
+
+    document.getElementById('stat-receita').textContent = 'R$ ' + receitaTotal.toFixed(2).replace('.', ',');
+    document.getElementById('stat-custo').textContent = 'R$ ' + custoTotalEstimado.toFixed(2).replace('.', ',');
+
+    const liquido = receitaTotal - custoTotalEstimado;
+    const liquidoEl = document.getElementById('stat-liquido');
+    liquidoEl.textContent = 'R$ ' + liquido.toFixed(2).replace('.', ',');
+    liquidoEl.className = 'h4 fw-bold mb-0 ' + (liquido >= 0 ? 'text-success' : 'text-danger');
+
+    const margemEl = document.getElementById('stat-margem');
+    if (receitaTotal > 0) {
+        const margem = (liquido / receitaTotal) * 100;
+        margemEl.textContent = margem.toFixed(1) + '%';
+        margemEl.className = 'h4 fw-bold mb-0 ' + (margem >= 0 ? 'text-success' : 'text-danger');
+    } else {
+        margemEl.textContent = '—';
+    }
+
+    renderTabelaAcoes(linhas);
+}
+
+function renderTabelaAcoes(linhas) {
+    const tbody = document.getElementById('tabela-acoes');
+    tbody.innerHTML = '';
+
+    if (linhas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-secondary small">Nenhuma ação configurada ainda.</td></tr>';
+        return;
+    }
+
+    linhas.forEach(l => {
+        const margemPct = l.receitaEquivalente > 0
+            ? ((l.receitaEquivalente - l.custoTotal) / l.receitaEquivalente * 100)
+            : null;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="small">${rotulosAcao[l.acao] || l.acao}</td>
+            <td class="text-center small">${l.execucoes}</td>
+            <td class="text-center small fw-semibold">${l.valor_creditos} créd.</td>
+            <td class="text-center">
+                <div class="input-group input-group-sm" style="max-width:130px; margin:0 auto;">
+                    <span class="input-group-text">R$</span>
+                    <input type="number" step="0.001" min="0" class="form-control input-custo-unitario" value="${Number(l.custo_estimado_reais || 0).toFixed(3)}" data-acao="${l.acao}">
+                </div>
+            </td>
+            <td class="text-center small">
+                R$ ${l.custoTotal.toFixed(2).replace('.', ',')}
+                <div><span class="badge ${l.ehCustoReal ? 'text-bg-success' : 'text-bg-secondary'}" style="font-size:0.62rem;">${l.ehCustoReal ? 'real' : 'estimado'}</span></div>
+            </td>
+            <td class="text-center small">R$ ${l.receitaEquivalente.toFixed(2).replace('.', ',')}</td>
+            <td class="text-center small fw-semibold ${margemPct === null ? '' : (margemPct >= 0 ? 'text-success' : 'text-danger')}">
+                ${margemPct === null ? '—' : margemPct.toFixed(1) + '%'}
+            </td>
+            <td>
+                <div class="d-flex gap-1 align-items-center justify-content-center">
+                    <input type="number" step="1" min="0" max="95" class="form-control form-control-sm input-margem-desejada" placeholder="% margem" style="width:80px;">
+                    <button class="btn btn-outline-primary btn-sm btn-sugerir-preco text-nowrap">Sugerir</button>
+                </div>
+                <div class="small text-secondary mt-1 texto-sugestao"></div>
+            </td>
+        `;
+
+        const inputCusto = tr.querySelector('.input-custo-unitario');
+        inputCusto.addEventListener('change', async () => {
+            const novoValor = parseFloat(inputCusto.value) || 0;
+            const { error } = await supabaseClient
+                .from('config_precos')
+                .update({ custo_estimado_reais: novoValor })
+                .eq('acao', l.acao);
+            if (error) { alert('Erro ao salvar: ' + error.message); return; }
+            carregarTudo();
+        });
+
+        const btnSugerir = tr.querySelector('.btn-sugerir-preco');
+        const inputMargem = tr.querySelector('.input-margem-desejada');
+        const textoSugestao = tr.querySelector('.texto-sugestao');
+
+        btnSugerir.addEventListener('click', () => {
+            const margemDesejadaPct = parseFloat(inputMargem.value);
+            if (isNaN(margemDesejadaPct) || margemDesejadaPct < 0 || margemDesejadaPct >= 100) {
+                textoSugestao.className = 'small text-danger mt-1 texto-sugestao';
+                textoSugestao.textContent = 'Digite uma margem entre 0 e 99%.';
+                return;
+            }
+            if (valorPorCredito <= 0) {
+                textoSugestao.className = 'small text-danger mt-1 texto-sugestao';
+                textoSugestao.textContent = 'Cadastre pacotes de créditos ativos primeiro.';
+                return;
+            }
+            const custoUnitario = parseFloat(inputCusto.value) || 0;
+            const margemFracao = margemDesejadaPct / 100;
+            const precoReaisSugerido = custoUnitario / (1 - margemFracao);
+            const precoCreditosSugerido = Math.max(0.5, Math.ceil((precoReaisSugerido / valorPorCredito) * 2) / 2);
+
+            textoSugestao.className = 'small text-success mt-1 texto-sugestao';
+            textoSugestao.innerHTML = `Sugestão: <strong>${precoCreditosSugerido} créd.</strong> (hoje: ${l.valor_creditos}) <button type="button" class="btn btn-link btn-sm p-0 ms-1 btn-aplicar-sugestao">aplicar</button>`;
+
+            textoSugestao.querySelector('.btn-aplicar-sugestao').addEventListener('click', async () => {
+                const { error } = await supabaseClient
+                    .from('config_precos')
+                    .update({ valor_creditos: precoCreditosSugerido })
+                    .eq('acao', l.acao);
+                if (error) { alert('Erro ao aplicar: ' + error.message); return; }
+                carregarTudo();
+            });
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+</script>
+
+</body>
+</html>

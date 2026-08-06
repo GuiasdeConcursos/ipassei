@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Guias de Estudo — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+    .estrelas-readonly { color: #f5b301; letter-spacing: 1px; }
+    .tab-guias-btn { border: none; background: none; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; color: #6c757d; border-bottom: 2px solid transparent; }
+    .tab-guias-btn.active { color: #212529; border-bottom-color: currentColor; }
+    .linha-arvore-guia { padding: 0.3rem 0; border-bottom: 1px solid #f1f1f1; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link active"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Guias de Estudo</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="border-bottom mb-3 d-flex gap-2">
+            <button type="button" id="tab-btn-adicionar" class="tab-guias-btn active"><i class="bi bi-plus-lg"></i> Adicionar</button>
+            <button type="button" id="tab-btn-gerenciar" class="tab-guias-btn"><i class="bi bi-list-check"></i> Gerenciar</button>
+        </div>
+
+        <!-- ===================== ABA: ADICIONAR ===================== -->
+        <div id="aba-adicionar">
+            <div class="card-soft mb-3" style="max-width:800px;">
+                <h2 class="h6 fw-bold mb-1"><i class="bi bi-stars"></i> Gerar com IA</h2>
+                <p class="text-secondary small mb-2">Navegue até o assunto e clique em "Pedir pra gerar" — abre uma caixa pra você definir título e instruções específicas (opcional).</p>
+                <div id="arvore-ia"></div>
+            </div>
+
+            <div class="card-soft mb-3" style="max-width:800px;">
+                <h2 class="h6 fw-bold mb-1"><i class="bi bi-pencil-square"></i> Adicionar manualmente</h2>
+                <p class="text-secondary small mb-2">Navegue até o assunto e clique em "Criar guia" — abre uma caixa pra colar título e conteúdo prontos, sem IA.</p>
+                <div id="arvore-manual"></div>
+            </div>
+        </div>
+
+        <!-- ===================== ABA: GERENCIAR ===================== -->
+        <div id="aba-gerenciar" class="d-none">
+            <div class="card-soft mb-3" style="max-width:800px;">
+                <label class="form-label small fw-semibold">Filtrar por tópico</label>
+                <input type="text" id="busca-topico-filtro" class="form-control form-control-sm mb-1" placeholder="Busca o tópico (3+ letras)... deixe vazio pra ver todas">
+                <div id="lista-busca-filtro" class="list-group mb-2" style="max-height:180px; overflow-y:auto;"></div>
+                <div id="filtro-topico-atual" class="small text-secondary mb-2"></div>
+
+                <div class="border-top pt-2">
+                    <label class="form-label small fw-semibold">Ou navegue pela árvore</label>
+                    <div id="arvore-filtro"></div>
+                </div>
+            </div>
+
+            <div id="lista-guias" class="d-flex flex-column gap-3"></div>
+            <div id="vazio-guias" class="text-secondary small d-none">Nenhuma guia encontrada.</div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ===================== MODAL: gerar com IA ===================== -->
+<div class="modal fade" id="modal-gerar-ia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pedir guia pra IA</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border small" id="modal-ia-topico"></div>
+
+                <label class="form-label small fw-semibold">Título <span class="text-secondary fw-normal">(opcional — a IA sugere um se deixar em branco)</span></label>
+                <input type="text" id="modal-ia-titulo" class="form-control form-control-sm mb-2">
+
+                <label class="form-label small fw-semibold">Instruções específicas pra IA <span class="text-secondary fw-normal">(opcional)</span></label>
+                <textarea id="modal-ia-instrucoes" class="form-control form-control-sm mb-2" rows="3" placeholder='Ex: "foco em jurisprudência recente", "linguagem bem simples", "incluir tabela comparativa"'></textarea>
+
+                <div id="modal-ia-msg" class="small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btn-modal-ia-gerar" class="btn btn-navy btn-sm">Gerar guia</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODAL: adicionar manualmente ===================== -->
+<div class="modal fade" id="modal-manual" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Criar guia manualmente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border small" id="modal-manual-topico"></div>
+
+                <label class="form-label small fw-semibold">Título</label>
+                <input type="text" id="modal-manual-titulo" class="form-control form-control-sm mb-2">
+
+                <label class="form-label small fw-semibold">Conteúdo</label>
+                <textarea id="modal-manual-conteudo" class="form-control form-control-sm mb-2" rows="12" placeholder="Cola aqui o conteúdo da guia..."></textarea>
+
+                <div id="modal-manual-msg" class="small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btn-modal-manual-salvar" class="btn btn-navy btn-sm">Salvar guia</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+let topicoFiltroId = null;
+let topicoContextoId = null; // usado pelos dois modais (IA e manual), guarda o nó da árvore clicado
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function renderEstrelas(nota) {
+    const cheias = Math.round(nota);
+    return '★'.repeat(cheias) + '☆'.repeat(5 - cheias);
+}
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    await carregarNivelArvore('arvore-ia', null, null, 'Pedir pra gerar', 'btn-outline-primary', abrirModalIA);
+    await carregarNivelArvore('arvore-manual', null, null, 'Criar guia', 'btn-outline-success', abrirModalManual);
+    await carregarNivelArvore('arvore-filtro', null, null, 'Filtrar aqui', 'btn-outline-secondary', aplicarFiltroTopicoDaArvore, true);
+    await carregarGuias();
+})();
+
+function aplicarFiltroTopicoDaArvore(topicoId, nomeTopico) {
+    topicoFiltroId = topicoId;
+    document.getElementById('filtro-topico-atual').innerHTML = `Filtrando por: <strong>${escapeHtml(nomeTopico)}</strong> <button type="button" class="btn btn-link btn-sm p-0 ms-1" id="btn-limpar-filtro-topico">limpar</button>`;
+    document.getElementById('btn-limpar-filtro-topico').addEventListener('click', () => {
+        topicoFiltroId = null;
+        document.getElementById('filtro-topico-atual').textContent = '';
+        carregarGuias();
+    });
+    carregarGuias();
+}
+
+// ================= ABAS =================
+document.getElementById('tab-btn-adicionar').addEventListener('click', () => trocarAba('adicionar'));
+document.getElementById('tab-btn-gerenciar').addEventListener('click', () => trocarAba('gerenciar'));
+
+function trocarAba(nome) {
+    const ehAdicionar = nome === 'adicionar';
+    document.getElementById('aba-adicionar').classList.toggle('d-none', !ehAdicionar);
+    document.getElementById('aba-gerenciar').classList.toggle('d-none', ehAdicionar);
+    document.getElementById('tab-btn-adicionar').classList.toggle('active', ehAdicionar);
+    document.getElementById('tab-btn-gerenciar').classList.toggle('active', !ehAdicionar);
+}
+
+// ================= ÁRVORE REAPROVEITÁVEL (usada nos dois modos de adicionar) =================
+async function carregarNivelArvore(containerId, paiId, containerElPassado, rotuloBotao, classeBotao, onClicarBotao, mostrarContagem) {
+    const containerEl = containerElPassado || document.getElementById(containerId);
+    const { data } = await supabaseClient.rpc('arvore_filhos', { pai_id: paiId });
+    const wrap = document.createElement('div');
+    wrap.className = 'ps-' + (paiId ? '3' : '0');
+    (data || []).forEach(item => wrap.appendChild(criarLinhaArvore(containerId, item, rotuloBotao, classeBotao, onClicarBotao, mostrarContagem)));
+    containerEl.appendChild(wrap);
+}
+
+function criarLinhaArvore(containerId, item, rotuloBotao, classeBotao, onClicarBotao, mostrarContagem) {
+    const linha = document.createElement('div');
+    linha.className = 'linha-arvore-guia d-flex align-items-center gap-2';
+
+    const btnExpandir = document.createElement('button');
+    btnExpandir.type = 'button';
+    btnExpandir.className = 'btn btn-sm btn-link p-0';
+    btnExpandir.style.width = '20px';
+    btnExpandir.innerHTML = item.tem_filhos ? '<i class="bi bi-caret-right-fill"></i>' : '';
+    btnExpandir.style.visibility = item.tem_filhos ? 'visible' : 'hidden';
+
+    const label = document.createElement('span');
+    label.className = 'small flex-fill';
+    label.textContent = item.nome;
+    label.style.cursor = item.tem_filhos ? 'pointer' : 'default';
+
+    let badgeContagem = null;
+    if (mostrarContagem) {
+        badgeContagem = document.createElement('span');
+        badgeContagem.className = 'badge text-bg-secondary';
+        badgeContagem.style.fontSize = '0.68rem';
+        badgeContagem.textContent = '…';
+        supabaseClient.from('guias_estudo').select('id', { count: 'exact', head: true }).eq('topico_id', item.id)
+            .then(({ count }) => {
+                const n = count || 0;
+                badgeContagem.textContent = n;
+                badgeContagem.className = 'badge ' + (n === 0 ? 'text-bg-light border text-secondary' : 'text-bg-info');
+            });
+    }
+
+    const btnAcao = document.createElement('button');
+    btnAcao.type = 'button';
+    btnAcao.className = `btn btn-sm ${classeBotao} py-0 px-2`;
+    btnAcao.style.fontSize = '0.75rem';
+    btnAcao.textContent = rotuloBotao;
+    btnAcao.addEventListener('click', () => onClicarBotao(item.id, item.nome));
+
+    let expandido = false;
+    let filhosContainer = null;
+    btnExpandir.addEventListener('click', async () => {
+        if (!item.tem_filhos) return;
+        if (!expandido) {
+            if (!filhosContainer) {
+                filhosContainer = document.createElement('div');
+                linha.parentElement.insertBefore(filhosContainer, linha.nextSibling);
+                await carregarNivelArvore(containerId, item.id, filhosContainer, rotuloBotao, classeBotao, onClicarBotao, mostrarContagem);
+            } else {
+                filhosContainer.style.display = '';
+            }
+            btnExpandir.innerHTML = '<i class="bi bi-caret-down-fill"></i>';
+        } else {
+            if (filhosContainer) filhosContainer.style.display = 'none';
+            btnExpandir.innerHTML = '<i class="bi bi-caret-right-fill"></i>';
+        }
+        expandido = !expandido;
+    });
+    label.addEventListener('click', () => btnExpandir.click());
+
+    linha.appendChild(btnExpandir);
+    linha.appendChild(label);
+    if (badgeContagem) linha.appendChild(badgeContagem);
+    linha.appendChild(btnAcao);
+    return linha;
+}
+
+// ================= MODAL: gerar com IA =================
+let modalIAInstancia = null;
+
+async function abrirModalIA(topicoId, nomeTopico) {
+    topicoContextoId = topicoId;
+    if (!modalIAInstancia) modalIAInstancia = new bootstrap.Modal(document.getElementById('modal-gerar-ia'));
+
+    const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: topicoId });
+    document.getElementById('modal-ia-topico').innerHTML = '<i class="bi bi-signpost-split"></i> ' + escapeHtml(caminho || nomeTopico);
+    document.getElementById('modal-ia-titulo').value = '';
+    document.getElementById('modal-ia-instrucoes').value = '';
+    document.getElementById('modal-ia-msg').textContent = '';
+
+    modalIAInstancia.show();
+}
+
+document.getElementById('btn-modal-ia-gerar').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-modal-ia-gerar');
+    const msgEl = document.getElementById('modal-ia-msg');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Gerando... pode levar um tempo.';
+    msgEl.textContent = '';
+
+    const { data, error } = await supabaseClient.functions.invoke('gerar-guia-estudo', {
+        body: {
+            topico_id: topicoContextoId,
+            titulo: document.getElementById('modal-ia-titulo').value.trim() || null,
+            instrucoes_extra: document.getElementById('modal-ia-instrucoes').value.trim() || null,
+        }
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Gerar guia';
+
+    if (error || data?.error) {
+        msgEl.className = 'small text-danger';
+        msgEl.textContent = data?.error || error.message;
+        return;
+    }
+
+    msgEl.className = 'small text-success';
+    msgEl.textContent = 'Guia gerada ✓ — revise na aba "Gerenciar" e ative quando estiver pronta.';
+    await carregarGuias();
+    setTimeout(() => modalIAInstancia.hide(), 1200);
+});
+
+// ================= MODAL: adicionar manualmente =================
+let modalManualInstancia = null;
+
+async function abrirModalManual(topicoId, nomeTopico) {
+    topicoContextoId = topicoId;
+    if (!modalManualInstancia) modalManualInstancia = new bootstrap.Modal(document.getElementById('modal-manual'));
+
+    const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: topicoId });
+    document.getElementById('modal-manual-topico').innerHTML = '<i class="bi bi-signpost-split"></i> ' + escapeHtml(caminho || nomeTopico);
+    document.getElementById('modal-manual-titulo').value = '';
+    document.getElementById('modal-manual-conteudo').value = '';
+    document.getElementById('modal-manual-msg').textContent = '';
+
+    modalManualInstancia.show();
+}
+
+document.getElementById('btn-modal-manual-salvar').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-modal-manual-salvar');
+    const msgEl = document.getElementById('modal-manual-msg');
+    const titulo = document.getElementById('modal-manual-titulo').value.trim();
+    const conteudo = document.getElementById('modal-manual-conteudo').value.trim();
+
+    if (!titulo || !conteudo) {
+        msgEl.className = 'small text-danger';
+        msgEl.textContent = 'Preencha título e conteúdo.';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const { error } = await supabaseClient.from('guias_estudo').insert({
+        topico_id: topicoContextoId, titulo, conteudo,
+        origem: 'manual', provedor_ia_id: null, ativa: false,
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Salvar guia';
+
+    if (error) {
+        msgEl.className = 'small text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        return;
+    }
+
+    msgEl.className = 'small text-success';
+    msgEl.textContent = 'Guia salva ✓ — revise na aba "Gerenciar" e ative quando estiver pronta.';
+    await carregarGuias();
+    setTimeout(() => modalManualInstancia.hide(), 1200);
+});
+
+// ================= ABA GERENCIAR: busca de tópico pro filtro =================
+function montarBuscaTopico(inputId, listaId, onEscolher) {
+    let debounceTimer = null;
+    document.getElementById(inputId).addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const termo = e.target.value.trim();
+        const listaEl = document.getElementById(listaId);
+        if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+        debounceTimer = setTimeout(async () => {
+            const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+            listaEl.innerHTML = '';
+            (data || []).forEach(t => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action small py-1';
+                item.innerHTML = `<strong>${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>`;
+                item.addEventListener('click', () => {
+                    onEscolher(t);
+                    listaEl.innerHTML = '';
+                    document.getElementById(inputId).value = '';
+                });
+                listaEl.appendChild(item);
+            });
+        }, 350);
+    });
+}
+
+montarBuscaTopico('busca-topico-filtro', 'lista-busca-filtro', (t) => {
+    topicoFiltroId = t.id;
+    document.getElementById('filtro-topico-atual').innerHTML = `Filtrando por: <strong>${escapeHtml(t.caminho)}</strong> <button type="button" class="btn btn-link btn-sm p-0 ms-1" id="btn-limpar-filtro-topico">limpar</button>`;
+    document.getElementById('btn-limpar-filtro-topico').addEventListener('click', () => {
+        topicoFiltroId = null;
+        document.getElementById('filtro-topico-atual').textContent = '';
+        carregarGuias();
+    });
+    carregarGuias();
+});
+
+// ================= ABA GERENCIAR: listar/editar/ativar/excluir =================
+async function carregarGuias() {
+    let query = supabaseClient.from('guias_estudo').select('*').order('criado_em', { ascending: false });
+    if (topicoFiltroId) query = query.eq('topico_id', topicoFiltroId);
+    const { data: guias, error } = await query;
+
+    const container = document.getElementById('lista-guias');
+    const vazioEl = document.getElementById('vazio-guias');
+    container.innerHTML = '';
+
+    if (error) {
+        container.innerHTML = `<div class="text-danger small">${error.message}</div>`;
+        return;
+    }
+
+    if (!guias || guias.length === 0) {
+        vazioEl.classList.remove('d-none');
+        return;
+    }
+    vazioEl.classList.add('d-none');
+
+    const idsTopicos = [...new Set(guias.map(g => g.topico_id))];
+    const mapaCaminhos = new Map();
+    await Promise.all(idsTopicos.map(async (id) => {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: id });
+        mapaCaminhos.set(id, caminho || `Tópico #${id}`);
+    }));
+
+    guias.forEach(g => container.appendChild(criarCardGuia(g, mapaCaminhos.get(g.topico_id))));
+}
+
+function criarCardGuia(guia, caminhoTopico) {
+    const card = document.createElement('div');
+    card.className = 'card-soft';
+    card.style.maxWidth = '800px';
+
+    card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+                <div class="text-secondary small">${escapeHtml(caminhoTopico || '')}</div>
+                <div class="fw-semibold">${escapeHtml(guia.titulo)}</div>
+            </div>
+            <div class="text-end text-nowrap">
+                <span class="badge ${guia.ativa ? 'text-bg-success' : 'text-bg-secondary'}">${guia.ativa ? 'ativa' : 'inativa'}</span>
+                <span class="badge ${guia.origem === 'manual' ? 'text-bg-light border' : 'text-bg-info'}">${guia.origem === 'manual' ? 'manual' : 'IA'}</span>
+                <div class="small mt-1">
+                    <span class="estrelas-readonly">${renderEstrelas(guia.nota_media)}</span>
+                    <span class="text-secondary">${guia.nota_media} (${guia.total_avaliacoes} avaliação${guia.total_avaliacoes === 1 ? '' : 'ões'})</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary btn-sm btn-ver-conteudo">Ver / editar conteúdo</button>
+        <div class="mt-2 d-none bloco-conteudo">
+            <textarea class="form-control form-control-sm input-conteudo" rows="14">${escapeHtml(guia.conteudo)}</textarea>
+            <input type="text" class="form-control form-control-sm input-titulo mt-2" value="${escapeHtml(guia.titulo)}">
+        </div>
+
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-sm ${guia.ativa ? 'btn-outline-secondary' : 'btn-navy'} btn-toggle-ativa">${guia.ativa ? 'Desativar' : 'Ativar'}</button>
+            <button class="btn btn-outline-primary btn-sm btn-salvar-edicao d-none">Salvar edição</button>
+            <button class="btn btn-outline-danger btn-sm btn-excluir">Excluir</button>
+        </div>
+        <div class="msg small mt-2"></div>
+    `;
+
+    const btnVer = card.querySelector('.btn-ver-conteudo');
+    const blocoConteudo = card.querySelector('.bloco-conteudo');
+    const btnSalvarEdicao = card.querySelector('.btn-salvar-edicao');
+    btnVer.addEventListener('click', () => {
+        const abrindo = blocoConteudo.classList.contains('d-none');
+        blocoConteudo.classList.toggle('d-none');
+        btnSalvarEdicao.classList.toggle('d-none', !abrindo);
+        btnVer.textContent = abrindo ? 'Esconder conteúdo' : 'Ver / editar conteúdo';
+    });
+
+    btnSalvarEdicao.addEventListener('click', async () => {
+        const msgEl = card.querySelector('.msg');
+        const novoConteudo = card.querySelector('.input-conteudo').value.trim();
+        const novoTitulo = card.querySelector('.input-titulo').value.trim();
+        const { error } = await supabaseClient.from('guias_estudo').update({ conteudo: novoConteudo, titulo: novoTitulo }).eq('id', guia.id);
+        if (error) { msgEl.className = 'msg small mt-2 text-danger'; msgEl.textContent = error.message; return; }
+        msgEl.className = 'msg small mt-2 text-success';
+        msgEl.textContent = 'Salvo ✓';
+        guia.titulo = novoTitulo;
+        card.querySelector('.fw-semibold').textContent = novoTitulo;
+    });
+
+    card.querySelector('.btn-toggle-ativa').addEventListener('click', async () => {
+        const { error } = await supabaseClient.from('guias_estudo').update({ ativa: !guia.ativa }).eq('id', guia.id);
+        if (error) { card.querySelector('.msg').className = 'msg small mt-2 text-danger'; card.querySelector('.msg').textContent = error.message; return; }
+        carregarGuias();
+    });
+
+    card.querySelector('.btn-excluir').addEventListener('click', async () => {
+        if (!confirm(`Excluir a guia "${guia.titulo}"? Isso apaga também todas as avaliações dela.`)) return;
+        const { error } = await supabaseClient.from('guias_estudo').delete().eq('id', guia.id);
+        if (error) { card.querySelector('.msg').className = 'msg small mt-2 text-danger'; card.querySelector('.msg').textContent = error.message; return; }
+        card.remove();
+    });
+
+    return card;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minhas redações — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link active"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+                <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Minhas redações</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-journal-text"></i> Redações feitas</div>
+                    <div class="h4 fw-bold mb-0" id="stat-total">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-graph-up-arrow"></i> Nota média</div>
+                    <div class="h4 fw-bold mb-0" id="stat-media">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-trophy"></i> Melhor nota</div>
+                    <div class="h4 fw-bold mb-0" id="stat-melhor">—</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card-soft h-100">
+                    <div class="text-secondary small mb-1"><i class="bi bi-arrow-up-right"></i> Evolução <span class="text-secondary fw-normal" style="font-size:0.7rem;">(1ª vs última)</span></div>
+                    <div class="h4 fw-bold mb-0" id="stat-evolucao">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-bottom mb-3 d-flex gap-2">
+            <button type="button" id="tab-btn-evolucao" class="tab-editais-btn active">
+                <i class="bi bi-graph-up"></i> Evolução
+            </button>
+            <button type="button" id="tab-btn-notas" class="tab-editais-btn">
+                <i class="bi bi-list-ol"></i> Minhas notas
+            </button>
+        </div>
+
+        <div id="tab-evolucao">
+            <p class="text-secondary small mb-3">Em ordem cronológica (da mais antiga pra mais recente), pra você acompanhar sua evolução.</p>
+            <div id="lista-redacoes" class="d-flex flex-column gap-3"></div>
+            <div id="vazio" class="text-secondary small d-none">Você ainda não escreveu nenhuma redação. Vá em "Redação" e comece.</div>
+            <div class="d-flex justify-content-between align-items-center mt-3" id="paginacao-evolucao">
+                <button type="button" id="btn-pag-evolucao-anterior" class="btn btn-outline-secondary btn-sm" disabled>← Anterior</button>
+                <span class="small text-secondary" id="txt-pag-evolucao"></span>
+                <button type="button" id="btn-pag-evolucao-proxima" class="btn btn-outline-secondary btn-sm" disabled>Próxima →</button>
+            </div>
+        </div>
+
+        <div id="tab-notas" class="d-none">
+            <p class="text-secondary small mb-3">Só as redações já corrigidas, da mais recente pra mais antiga.</p>
+            <div class="card-soft">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr class="text-secondary small">
+                                <th>Data</th>
+                                <th>Tema</th>
+                                <th class="text-center">Nota</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-notas"></tbody>
+                    </table>
+                </div>
+                <div id="vazio-notas" class="text-secondary small d-none">Nenhuma redação corrigida ainda.</div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3" id="paginacao-notas">
+                <button type="button" id="btn-pag-notas-anterior" class="btn btn-outline-secondary btn-sm" disabled>← Anterior</button>
+                <span class="small text-secondary" id="txt-pag-notas"></span>
+                <button type="button" id="btn-pag-notas-proxima" class="btn btn-outline-secondary btn-sm" disabled>Próxima →</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .tab-editais-btn { border: none; background: none; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; color: #6c757d; border-bottom: 2px solid transparent; }
+    .tab-editais-btn.active { color: #212529; border-bottom-color: currentColor; }
+</style>
+
+<script src="assets/supabase-config.js"></script>
+<script>
+let userId = null;
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function corDaNota(nota, max) {
+    const pct = (nota / max) * 100;
+    if (pct >= 70) return 'text-success';
+    if (pct >= 40) return 'text-warning';
+    return 'text-danger';
+}
+
+const POR_PAGINA = 10;
+let paginaEvolucao = 0;
+let paginaNotas = 0;
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+
+    await carregarStats();
+    await carregarPaginaEvolucao(0);
+    await carregarPaginaNotas(0);
+})();
+
+// ---------- Abas ----------
+document.getElementById('tab-btn-evolucao').addEventListener('click', () => trocarAba('evolucao'));
+document.getElementById('tab-btn-notas').addEventListener('click', () => trocarAba('notas'));
+
+function trocarAba(nome) {
+    const ehEvolucao = nome === 'evolucao';
+    document.getElementById('tab-evolucao').classList.toggle('d-none', !ehEvolucao);
+    document.getElementById('tab-notas').classList.toggle('d-none', ehEvolucao);
+    document.getElementById('tab-btn-evolucao').classList.toggle('active', ehEvolucao);
+    document.getElementById('tab-btn-notas').classList.toggle('active', !ehEvolucao);
+}
+
+// ---------- Stats leves (só busca as notas, não o resto dos dados) ----------
+async function carregarStats() {
+    const { data: linhas } = await supabaseClient
+        .from('redacoes_usuario')
+        .select('enviado_em, correcoes_redacao(nota_final)')
+        .eq('usuario_id', userId)
+        .order('enviado_em', { ascending: true });
+
+    document.getElementById('stat-total').textContent = (linhas || []).length;
+
+    const notas = (linhas || [])
+        .map(r => (Array.isArray(r.correcoes_redacao) ? r.correcoes_redacao[0] : r.correcoes_redacao))
+        .filter(c => c && c.nota_final != null)
+        .map(c => Number(c.nota_final));
+
+    if (notas.length > 0) {
+        const media = notas.reduce((s, n) => s + n, 0) / notas.length;
+        document.getElementById('stat-media').textContent = media.toFixed(0);
+        document.getElementById('stat-melhor').textContent = Math.max(...notas);
+    }
+
+    if (notas.length >= 2) {
+        const diferenca = notas[notas.length - 1] - notas[0];
+        const el = document.getElementById('stat-evolucao');
+        el.textContent = (diferenca >= 0 ? '+' : '') + diferenca.toFixed(0);
+        el.className = 'h4 fw-bold mb-0 ' + (diferenca > 0 ? 'text-success' : diferenca < 0 ? 'text-danger' : '');
+    } else {
+        document.getElementById('stat-evolucao').textContent = '—';
+    }
+}
+
+// ---------- Aba "Evolução": cronológica ascendente, paginada ----------
+async function carregarPaginaEvolucao(pagina) {
+    paginaEvolucao = pagina;
+    const inicio = pagina * POR_PAGINA;
+
+    const { data: redacoes, count, error } = await supabaseClient
+        .from('redacoes_usuario')
+        .select('id, tema_id, texto_redacao, imagem_url, versao, enviado_em, temas_redacao(titulo, texto_motivador), correcoes_redacao(nota_final, competencias, feedback_geral, sugestoes_melhoria)', { count: 'exact' })
+        .eq('usuario_id', userId)
+        .order('enviado_em', { ascending: true })
+        .range(inicio, inicio + POR_PAGINA - 1);
+
+    if (error) {
+        document.getElementById('lista-redacoes').innerHTML = `<div class="text-danger small">${error.message}</div>`;
+        return;
+    }
+
+    document.getElementById('vazio').classList.toggle('d-none', (count || 0) > 0);
+    renderLista(redacoes || [], inicio);
+    atualizarControlesPaginacao('evolucao', pagina, count || 0);
+}
+
+document.getElementById('btn-pag-evolucao-anterior').addEventListener('click', () => carregarPaginaEvolucao(paginaEvolucao - 1));
+document.getElementById('btn-pag-evolucao-proxima').addEventListener('click', () => carregarPaginaEvolucao(paginaEvolucao + 1));
+
+// ---------- Aba "Minhas notas": só corrigidas, mais recente primeiro, paginada ----------
+async function carregarPaginaNotas(pagina) {
+    paginaNotas = pagina;
+    const inicio = pagina * POR_PAGINA;
+
+    const { data: redacoes, count, error } = await supabaseClient
+        .from('redacoes_usuario')
+        .select('id, enviado_em, temas_redacao(titulo), correcoes_redacao!inner(nota_final)', { count: 'exact' })
+        .eq('usuario_id', userId)
+        .order('enviado_em', { ascending: false })
+        .range(inicio, inicio + POR_PAGINA - 1);
+
+    const tbody = document.getElementById('tabela-notas');
+    const vazioEl = document.getElementById('vazio-notas');
+
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-danger small">${error.message}</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    vazioEl.classList.toggle('d-none', (count || 0) > 0);
+
+    (redacoes || []).forEach(r => {
+        const correcao = Array.isArray(r.correcoes_redacao) ? r.correcoes_redacao[0] : r.correcoes_redacao;
+        const tema = r.temas_redacao || {};
+        const dataFormatada = new Date(r.enviado_em).toLocaleDateString('pt-BR');
+        const nota = correcao ? Number(correcao.nota_final) : null;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="small text-secondary">${dataFormatada}</td>
+            <td class="small">${escapeHtml(tema.titulo || 'Tema não identificado')}</td>
+            <td class="text-center small fw-bold ${nota != null ? corDaNota(nota, 1000) : ''}">${nota != null ? nota : '—'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    atualizarControlesPaginacao('notas', pagina, count || 0);
+}
+
+document.getElementById('btn-pag-notas-anterior').addEventListener('click', () => carregarPaginaNotas(paginaNotas - 1));
+document.getElementById('btn-pag-notas-proxima').addEventListener('click', () => carregarPaginaNotas(paginaNotas + 1));
+
+function atualizarControlesPaginacao(prefixo, pagina, total) {
+    const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+    document.getElementById(`txt-pag-${prefixo}`).textContent = total > 0 ? `Página ${pagina + 1} de ${totalPaginas} (${total} no total)` : '';
+    document.getElementById(`btn-pag-${prefixo}-anterior`).disabled = pagina <= 0;
+    document.getElementById(`btn-pag-${prefixo}-proxima`).disabled = pagina >= totalPaginas - 1;
+}
+
+function renderLista(redacoes, inicioIndice) {
+    const container = document.getElementById('lista-redacoes');
+    container.innerHTML = '';
+
+    redacoes.forEach((r, i) => {
+        const correcao = Array.isArray(r.correcoes_redacao) ? r.correcoes_redacao[0] : r.correcoes_redacao;
+        const tema = r.temas_redacao || {};
+        const dataFormatada = new Date(r.enviado_em).toLocaleString('pt-BR');
+
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+
+        let notaHtml = '<span class="badge text-bg-secondary">Sem correção</span>';
+        if (correcao && correcao.nota_final != null) {
+            const nota = Number(correcao.nota_final);
+            notaHtml = `<span class="h5 fw-bold mb-0 ${corDaNota(nota, 1000)}">${nota}</span><span class="text-secondary small">/1000</span>`;
+        }
+
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                <div>
+                    <div class="text-secondary small">#${inicioIndice + i + 1} · ${dataFormatada}${r.versao > 1 ? ` · versão ${r.versao}` : ''}${r.imagem_url ? ' · <i class="bi bi-camera"></i> enviada por foto' : ''}</div>
+                    <div class="fw-semibold">${escapeHtml(tema.titulo || 'Tema não identificado')}</div>
+                </div>
+                <div class="text-end text-nowrap">${notaHtml}</div>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-ver-detalhes">Ver detalhes</button>
+            <div class="detalhes-redacao d-none mt-3"></div>
+        `;
+
+        card.querySelector('.btn-ver-detalhes').addEventListener('click', (e) => {
+            const detalhesEl = card.querySelector('.detalhes-redacao');
+            const abrindo = detalhesEl.classList.contains('d-none');
+            detalhesEl.classList.toggle('d-none');
+            e.target.textContent = abrindo ? 'Esconder detalhes' : 'Ver detalhes';
+            if (abrindo && !detalhesEl.dataset.montado) {
+                montarDetalhes(detalhesEl, r, tema, correcao);
+                detalhesEl.dataset.montado = '1';
+            }
+        });
+
+        container.appendChild(card);
+    });
+}
+
+function montarDetalhes(el, redacao, tema, correcao) {
+    let html = '';
+
+    if (tema.texto_motivador) {
+        html += `<div class="mb-3"><div class="small fw-semibold text-secondary mb-1">Texto motivador</div><p class="small mb-0" style="white-space:pre-wrap;">${escapeHtml(tema.texto_motivador)}</p></div>`;
+    }
+
+    html += `<div class="mb-3"><div class="small fw-semibold text-secondary mb-1">O que você escreveu</div><p class="small mb-0 border rounded p-2" style="white-space:pre-wrap; background:#fff;">${escapeHtml(redacao.texto_redacao)}</p></div>`;
+
+    if (correcao) {
+        if (correcao.competencias && correcao.competencias.length) {
+            html += `<div class="mb-3"><div class="small fw-semibold text-secondary mb-2">Competências</div>`;
+            correcao.competencias.forEach(c => {
+                html += `<div class="d-flex justify-content-between align-items-center border-bottom py-1">
+                    <span class="small">${c.numero}. ${escapeHtml(c.nome)}</span>
+                    <span class="small fw-bold ${corDaNota(c.nota, 200)}">${c.nota}/200</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+        if (correcao.feedback_geral) {
+            html += `<div class="mb-3"><div class="small fw-semibold text-secondary mb-1">Feedback geral</div><p class="small mb-0">${escapeHtml(correcao.feedback_geral)}</p></div>`;
+        }
+        if (correcao.sugestoes_melhoria) {
+            html += `<div class="mb-0"><div class="small fw-semibold text-secondary mb-1">Sugestões de melhoria</div><p class="small mb-0">${escapeHtml(correcao.sugestoes_melhoria)}</p></div>`;
+        }
+    } else {
+        html += `<div class="text-secondary small fst-italic">Essa redação ainda não tem correção salva.</div>`;
+    }
+
+    el.innerHTML = html;
+}
+</script>
+
+</body>
+</html>

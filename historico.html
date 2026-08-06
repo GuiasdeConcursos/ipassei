@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu histórico — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link active"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+                <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Meu histórico</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="row g-2 mb-3 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Resultado</label>
+                <select id="filtro-resultado" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    <option value="acertou">Só acertos</option>
+                    <option value="errou">Só erros</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">De</label>
+                <input type="date" id="filtro-data-inicio" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Até</label>
+                <input type="date" id="filtro-data-fim" class="form-control form-control-sm">
+            </div>
+            <div class="col-auto">
+                <button id="btn-limpar-filtros" class="btn btn-outline-secondary btn-sm">Limpar filtros</button>
+            </div>
+        </div>
+
+        <div id="lista-historico" class="d-flex flex-column gap-2"></div>
+        <div id="vazio" class="text-secondary small d-none">Você ainda não respondeu nenhuma questão. Vá em "Gerar questões" e comece a praticar.</div>
+    </div>
+</div>
+
+<script src="assets/supabase-config.js"></script>
+<script>
+let userId = null;
+let historicoCompleto = [];
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+
+    const { data } = await supabaseClient
+        .from('vw_historico_usuario')
+        .select('*')
+        .eq('usuario_id', userId)
+        .order('respondido_em', { ascending: false });
+
+    historicoCompleto = data || [];
+    renderLista(historicoCompleto);
+})();
+
+function renderLista(lista) {
+    const container = document.getElementById('lista-historico');
+    container.innerHTML = '';
+    document.getElementById('vazio').classList.toggle('d-none', lista.length > 0);
+
+    lista.forEach(h => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        const dataFormatada = new Date(h.respondido_em).toLocaleString('pt-BR');
+        const tempoFormatado = h.tempo_gasto_segundos != null
+            ? `${String(Math.floor(h.tempo_gasto_segundos/60)).padStart(2,'0')}:${String(h.tempo_gasto_segundos%60).padStart(2,'0')}`
+            : '—';
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <span class="badge ${h.acertou ? 'text-bg-success' : 'text-bg-danger'}">${h.acertou ? 'Acertou' : 'Errou'}</span>
+                    <span class="badge text-bg-light border ms-1">${h.banca_nome || '—'}</span>
+                    <span class="badge text-bg-light border ms-1">${h.dificuldade || '—'}</span>
+                    <span class="badge text-bg-secondary ms-1"><i class="bi bi-stopwatch"></i> ${tempoFormatado}</span>
+                    <div class="text-secondary small mt-1">${h.topico_caminho || ''}</div>
+                </div>
+                <div class="text-secondary small text-nowrap">${dataFormatada}</div>
+            </div>
+            <p class="mt-2 mb-1 small">${h.enunciado}</p>
+            <div class="small text-secondary">Sua resposta: <strong>${h.resposta_dada}</strong> — Correta: <strong>${h.resposta_correta}</strong></div>
+            <div class="d-flex gap-2 flex-wrap mt-2">
+                <button class="btn btn-outline-secondary btn-sm btn-ver-explicacao" data-id="${h.questao_id}">Ver explicação detalhada</button>
+                <button class="btn btn-outline-secondary btn-sm btn-ver-materia" data-id="${h.questao_id}">Ver matéria explicativa</button>
+            </div>
+            <div class="conteudo-extra alert alert-light border small mt-2 d-none" style="white-space:pre-wrap;"></div>
+        `;
+        card.querySelector('.btn-ver-explicacao').addEventListener('click', (e) => buscarConteudo(h.questao_id, 'explicacao', card, e.target));
+        card.querySelector('.btn-ver-materia').addEventListener('click', (e) => buscarConteudo(h.questao_id, 'materia', card, e.target));
+        container.appendChild(card);
+    });
+}
+
+function escapeHtml(txt) {
+    const div = document.createElement('div');
+    div.textContent = txt;
+    return div.innerHTML;
+}
+
+function formatarConteudoExtra(texto, tipo) {
+    if (tipo !== 'explicacao') {
+        return `<div>${escapeHtml(texto).replace(/\n/g, '<br>')}</div>`;
+    }
+    try {
+        const obj = JSON.parse(texto);
+        let html = `<div class="mb-2"><strong>✅ Por que a alternativa correta está certa:</strong><br>${escapeHtml(obj.por_que_correta)}</div>`;
+        html += `<div class="mb-2"><strong>❌ Por que as outras estão erradas:</strong></div>`;
+        (obj.alternativas_erradas || []).forEach(a => {
+            html += `<div class="mb-2 ps-2 border-start"><strong>${escapeHtml(a.letra)})</strong> ${escapeHtml(a.motivo)}</div>`;
+        });
+        if (obj.dica_memorizacao) {
+            html += `<div class="mt-2"><strong>💡 Dica:</strong><br>${escapeHtml(obj.dica_memorizacao)}</div>`;
+        }
+        return html;
+    } catch {
+        return `<div>${escapeHtml(texto).replace(/\n/g, '<br>')}</div>`;
+    }
+}
+
+async function buscarConteudo(questaoId, tipo, card, btnEl) {
+    const original = btnEl.textContent;
+    btnEl.disabled = true;
+    btnEl.textContent = 'Carregando...';
+
+    const { data, error } = await supabaseClient.functions.invoke('obter-conteudo-extra', {
+        body: { questao_id: questaoId, tipo }
+    });
+
+    btnEl.disabled = false;
+    btnEl.textContent = original;
+
+    if (error || data?.error) {
+        alert('Erro: ' + (data?.error || error.message));
+        return;
+    }
+
+    const box = card.querySelector('.conteudo-extra');
+    box.innerHTML = formatarConteudoExtra(data.texto, tipo) +
+        (data.cobrado ? '' : '<div class="text-secondary small mt-2">(já estava desbloqueado — sem cobrança)</div>');
+    box.classList.remove('d-none');
+
+    if (data.cobrado) {
+        const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+        if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+    }
+}
+
+function aplicarFiltros() {
+    const resultado = document.getElementById('filtro-resultado').value;
+    const dataInicio = document.getElementById('filtro-data-inicio').value;
+    const dataFim = document.getElementById('filtro-data-fim').value;
+
+    let filtrado = historicoCompleto;
+
+    if (resultado === 'acertou') filtrado = filtrado.filter(h => h.acertou);
+    else if (resultado === 'errou') filtrado = filtrado.filter(h => !h.acertou);
+
+    if (dataInicio) {
+        const inicio = new Date(dataInicio + 'T00:00:00');
+        filtrado = filtrado.filter(h => new Date(h.respondido_em) >= inicio);
+    }
+    if (dataFim) {
+        const fim = new Date(dataFim + 'T23:59:59');
+        filtrado = filtrado.filter(h => new Date(h.respondido_em) <= fim);
+    }
+
+    renderLista(filtrado);
+}
+
+document.getElementById('filtro-resultado').addEventListener('change', aplicarFiltros);
+document.getElementById('filtro-data-inicio').addEventListener('change', aplicarFiltros);
+document.getElementById('filtro-data-fim').addEventListener('change', aplicarFiltros);
+document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+    document.getElementById('filtro-resultado').value = '';
+    document.getElementById('filtro-data-inicio').value = '';
+    document.getElementById('filtro-data-fim').value = '';
+    renderLista(historicoCompleto);
+});
+</script>
+
+</body>
+</html>

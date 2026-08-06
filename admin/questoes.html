@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Questões — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .tab-q-btn { border: none; background: none; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; color: #6c757d; border-bottom: 2px solid transparent; }
+    .tab-q-btn.active { color: #212529; border-bottom-color: currentColor; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link active"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Questões</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="border-bottom mb-3 d-flex gap-2">
+            <button type="button" id="tab-btn-listar" class="tab-q-btn active">Listar / editar</button>
+            <button type="button" id="tab-btn-adicionar" class="tab-q-btn">Adicionar manualmente</button>
+        </div>
+
+        <!-- ===================== ABA: LISTAR / EDITAR ===================== -->
+        <div id="aba-listar">
+            <div class="card-soft mb-3" style="max-width:700px;">
+                <label class="form-label small fw-semibold">Buscar tópico direto (3+ letras)</label>
+                <input type="text" id="busca-topico-listar" class="form-control form-control-sm mb-1" placeholder="Busca o tópico...">
+                <div id="lista-busca-topico-listar" class="list-group" style="max-height:200px; overflow-y:auto;"></div>
+            </div>
+
+            <div class="card-soft mb-3" id="card-arvore-questoes" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-diagram-3"></i> Ou navegue pela árvore de matérias</h2>
+                <div id="arvore-topicos-questoes"></div>
+            </div>
+
+            <div id="painel-questoes-topico" class="d-none">
+                <button type="button" id="btn-voltar-arvore-questoes" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Voltar</button>
+                <h1 class="h6 fw-bold mb-3" id="topico-filtro-atual"></h1>
+
+                <div id="lista-questoes" class="d-flex flex-column gap-3" style="max-width:800px;"></div>
+                <div id="vazio-questoes" class="text-secondary small d-none">Nenhuma questão pra esse tópico ainda.</div>
+
+                <div id="paginacao-questoes" class="d-flex justify-content-between align-items-center mt-3 d-none" style="max-width:800px;">
+                    <button type="button" id="btn-pagina-anterior" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Anterior</button>
+                    <span class="small text-secondary" id="texto-pagina-atual"></span>
+                    <button type="button" id="btn-pagina-proxima" class="btn btn-outline-secondary btn-sm">Próxima <i class="bi bi-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== ABA: ADICIONAR MANUALMENTE ===================== -->
+        <div id="aba-adicionar" class="d-none" style="max-width:700px;">
+            <div class="card-soft">
+                <h2 class="h6 fw-bold mb-3"><i class="bi bi-plus-lg"></i> Nova questão</h2>
+                <div id="form-nova-questao"></div>
+                <div id="msg-nova-questao" class="small mt-2"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+const ROTULOS_NIVEL = { primario: 'Primário', fundamental: 'Fundamental', medio: 'Médio', superior: 'Superior' };
+const ROTULOS_DIFICULDADE = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
+const ROTULOS_ORIGEM = { ia_comunidade: 'IA', pdf_extraido: 'PDF importado', importado_externo: 'Prova real / importado', enviada_usuario: 'Comunidade' };
+
+let userId = null;
+let topicoFiltroId = null;
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    userId = acesso.session.user.id;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    montarFormularioNovaQuestao();
+})();
+
+function montarFormularioNovaQuestao() {
+    renderFormularioQuestao(document.getElementById('form-nova-questao'), null, async (dados) => {
+        const msgEl = document.getElementById('msg-nova-questao');
+        const { error } = await supabaseClient.from('questoes').insert(dados);
+        if (error) {
+            msgEl.className = 'small mt-2 text-danger';
+            msgEl.textContent = 'Erro: ' + error.message;
+            return;
+        }
+        msgEl.className = 'small mt-2 text-success';
+        msgEl.textContent = 'Questão criada ✓ — nasceu inativa, ative na aba "Listar / editar" quando revisar.';
+        montarFormularioNovaQuestao();
+    });
+}
+
+// ================= ABAS =================
+document.getElementById('tab-btn-listar').addEventListener('click', () => trocarAba('listar'));
+document.getElementById('tab-btn-adicionar').addEventListener('click', () => trocarAba('adicionar'));
+function trocarAba(nome) {
+    document.getElementById('aba-listar').classList.toggle('d-none', nome !== 'listar');
+    document.getElementById('aba-adicionar').classList.toggle('d-none', nome !== 'adicionar');
+    document.getElementById('tab-btn-listar').classList.toggle('active', nome === 'listar');
+    document.getElementById('tab-btn-adicionar').classList.toggle('active', nome === 'adicionar');
+}
+
+// ================= BUSCA DE TÓPICO (atalho, além da árvore) =================
+let debounceTimer = null;
+document.getElementById('busca-topico-listar').addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const termo = e.target.value.trim();
+    const listaEl = document.getElementById('lista-busca-topico-listar');
+    if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+    debounceTimer = setTimeout(async () => {
+        const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+        listaEl.innerHTML = '';
+        (data || []).forEach(t => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action small py-1';
+            item.innerHTML = `<strong>${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>`;
+            item.addEventListener('click', () => {
+                listaEl.innerHTML = '';
+                document.getElementById('busca-topico-listar').value = '';
+                abrirQuestoesDoTopico(t.id, t.caminho);
+            });
+            listaEl.appendChild(item);
+        });
+    }, 350);
+});
+
+// ================= ÁRVORE DE TÓPICOS (mesmo padrão de admin/topicos.html) =================
+(async () => {
+    await carregarNivelArvoreQuestoes(null, document.getElementById('arvore-topicos-questoes'));
+})();
+
+async function carregarNivelArvoreQuestoes(paiId, containerEl) {
+    const { data } = await supabaseClient.rpc('arvore_filhos', { pai_id: paiId });
+    const wrap = document.createElement('div');
+    wrap.className = 'ps-' + (paiId ? '3' : '0');
+    (data || []).forEach(item => wrap.appendChild(criarLinhaArvoreQuestoes(item)));
+    containerEl.appendChild(wrap);
+}
+
+function criarLinhaArvoreQuestoes(item) {
+    const linha = document.createElement('div');
+    linha.className = 'd-flex align-items-center gap-2 py-1 border-bottom';
+
+    const btnExpandir = document.createElement('button');
+    btnExpandir.type = 'button';
+    btnExpandir.className = 'btn btn-sm btn-link p-0';
+    btnExpandir.style.width = '20px';
+    btnExpandir.innerHTML = item.tem_filhos ? '<i class="bi bi-caret-right-fill"></i>' : '';
+    btnExpandir.style.visibility = item.tem_filhos ? 'visible' : 'hidden';
+
+    const label = document.createElement('span');
+    label.className = 'small flex-fill';
+    label.textContent = item.nome;
+    label.style.cursor = item.tem_filhos ? 'pointer' : 'default';
+
+    const badgeContagem = document.createElement('span');
+    badgeContagem.className = 'badge text-bg-secondary';
+    badgeContagem.style.fontSize = '0.68rem';
+    badgeContagem.style.cursor = 'pointer';
+    badgeContagem.textContent = '?';
+    badgeContagem.title = 'Clique pra contar as questões desse tópico';
+    badgeContagem.addEventListener('click', async () => {
+        badgeContagem.textContent = '…';
+        const { count } = await supabaseClient.from('questoes').select('id', { count: 'exact', head: true }).eq('topico_id', item.id);
+        badgeContagem.textContent = count || 0;
+        badgeContagem.className = 'badge ' + (!count ? 'text-bg-light border text-secondary' : 'text-bg-info');
+        badgeContagem.style.cursor = 'default';
+    });
+
+    const btnVer = document.createElement('button');
+    btnVer.type = 'button';
+    btnVer.className = 'btn btn-outline-primary btn-sm py-0 px-2';
+    btnVer.style.fontSize = '0.75rem';
+    btnVer.innerHTML = '<i class="bi bi-patch-question"></i> Ver questões';
+    btnVer.addEventListener('click', async () => {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: item.id });
+        abrirQuestoesDoTopico(item.id, caminho || item.nome);
+    });
+
+    let expandido = false;
+    let filhosContainer = null;
+    btnExpandir.addEventListener('click', async () => {
+        if (!item.tem_filhos) return;
+        if (!expandido) {
+            if (!filhosContainer) {
+                filhosContainer = document.createElement('div');
+                linha.parentElement.insertBefore(filhosContainer, linha.nextSibling);
+                await carregarNivelArvoreQuestoes(item.id, filhosContainer);
+            } else {
+                filhosContainer.style.display = '';
+            }
+            btnExpandir.innerHTML = '<i class="bi bi-caret-down-fill"></i>';
+        } else {
+            if (filhosContainer) filhosContainer.style.display = 'none';
+            btnExpandir.innerHTML = '<i class="bi bi-caret-right-fill"></i>';
+        }
+        expandido = !expandido;
+    });
+    label.addEventListener('click', () => btnExpandir.click());
+
+    linha.appendChild(btnExpandir);
+    linha.appendChild(label);
+    linha.appendChild(badgeContagem);
+    linha.appendChild(btnVer);
+    return linha;
+}
+
+// ================= ABRIR/FECHAR O PAINEL DE QUESTÕES DE UM TÓPICO =================
+function abrirQuestoesDoTopico(topicoId, caminho) {
+    topicoFiltroId = topicoId;
+    paginaAtual = 0;
+    document.getElementById('card-arvore-questoes').classList.add('d-none');
+    document.getElementById('painel-questoes-topico').classList.remove('d-none');
+    document.getElementById('topico-filtro-atual').textContent = caminho;
+    carregarQuestoes();
+}
+
+document.getElementById('btn-voltar-arvore-questoes').addEventListener('click', () => {
+    topicoFiltroId = null;
+    document.getElementById('painel-questoes-topico').classList.add('d-none');
+    document.getElementById('card-arvore-questoes').classList.remove('d-none');
+});
+
+// ================= LISTAR QUESTÕES, COM PAGINAÇÃO =================
+const TAMANHO_PAGINA = 10;
+let paginaAtual = 0;
+let totalQuestoesTopico = 0;
+
+document.getElementById('btn-pagina-anterior').addEventListener('click', () => {
+    if (paginaAtual > 0) { paginaAtual--; carregarQuestoes(); }
+});
+document.getElementById('btn-pagina-proxima').addEventListener('click', () => {
+    const totalPaginas = Math.ceil(totalQuestoesTopico / TAMANHO_PAGINA);
+    if (paginaAtual < totalPaginas - 1) { paginaAtual++; carregarQuestoes(); }
+});
+
+async function carregarQuestoes() {
+    const container = document.getElementById('lista-questoes');
+    const vazio = document.getElementById('vazio-questoes');
+    const paginacaoEl = document.getElementById('paginacao-questoes');
+    if (!topicoFiltroId) return;
+
+    container.innerHTML = '<div class="small text-secondary">Carregando...</div>';
+    paginacaoEl.classList.add('d-none');
+
+    const de = paginaAtual * TAMANHO_PAGINA;
+    const ate = de + TAMANHO_PAGINA - 1;
+
+    const { data, error, count } = await supabaseClient
+        .from('questoes')
+        .select('*', { count: 'exact' })
+        .eq('topico_id', topicoFiltroId)
+        .order('criado_em', { ascending: false })
+        .range(de, ate);
+
+    container.innerHTML = '';
+    if (error) { container.innerHTML = `<div class="text-danger small">${error.message}</div>`; return; }
+
+    totalQuestoesTopico = count || 0;
+    if (totalQuestoesTopico === 0) { vazio.classList.remove('d-none'); return; }
+    vazio.classList.add('d-none');
+
+    (data || []).forEach(q => container.appendChild(criarCardQuestao(q)));
+
+    const totalPaginas = Math.max(1, Math.ceil(totalQuestoesTopico / TAMANHO_PAGINA));
+    document.getElementById('texto-pagina-atual').textContent = `Página ${paginaAtual + 1} de ${totalPaginas} · ${totalQuestoesTopico} questõe${totalQuestoesTopico === 1 ? '' : 's'}`;
+    document.getElementById('btn-pagina-anterior').disabled = paginaAtual === 0;
+    document.getElementById('btn-pagina-proxima').disabled = paginaAtual >= totalPaginas - 1;
+    paginacaoEl.classList.remove('d-none');
+}
+
+function criarCardQuestao(q) {
+    const card = document.createElement('div');
+    card.className = 'card-soft';
+    card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="fw-semibold" style="max-width:600px;">${escapeHtml(q.enunciado.slice(0, 160))}${q.enunciado.length > 160 ? '…' : ''}</div>
+            <span class="badge ${q.ativa ? 'text-bg-success' : 'text-bg-secondary'}">${q.ativa ? 'ativa' : 'inativa'}</span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mt-2">
+            <span class="badge text-bg-light border">${ROTULOS_DIFICULDADE[q.dificuldade] || q.dificuldade || 'sem dificuldade'}</span>
+            <span class="badge text-bg-light border">${ROTULOS_NIVEL[q.nivel_ensino] || q.nivel_ensino || 'sem nível'}</span>
+            <span class="badge text-bg-light border">${ROTULOS_ORIGEM[q.origem] || q.origem || ''}</span>
+        </div>
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-outline-primary btn-sm btn-editar">Editar</button>
+            <button class="btn btn-sm ${q.ativa ? 'btn-outline-secondary' : 'btn-navy'} btn-toggle-ativa">${q.ativa ? 'Desativar' : 'Ativar'}</button>
+            <button class="btn btn-outline-danger btn-sm btn-excluir">Excluir</button>
+        </div>
+        <div class="mt-3 d-none bloco-edicao"></div>
+        <div class="small mt-2 msg"></div>
+    `;
+
+    card.querySelector('.btn-editar').addEventListener('click', () => {
+        const bloco = card.querySelector('.bloco-edicao');
+        const abrindo = bloco.classList.contains('d-none');
+        bloco.classList.toggle('d-none');
+        card.querySelector('.btn-editar').textContent = abrindo ? 'Esconder edição' : 'Editar';
+        if (abrindo && !bloco.dataset.montado) {
+            bloco.dataset.montado = '1';
+            renderFormularioQuestao(bloco, q, async (dados) => {
+                const msgEl = card.querySelector('.msg');
+                const { error } = await supabaseClient.from('questoes').update(dados).eq('id', q.id);
+                if (error) { msgEl.className = 'small mt-2 text-danger msg'; msgEl.textContent = 'Erro: ' + error.message; return; }
+                msgEl.className = 'small mt-2 text-success msg';
+                msgEl.textContent = 'Salvo ✓';
+                setTimeout(carregarQuestoes, 800);
+            }, 'Salvar edição');
+        }
+    });
+
+    card.querySelector('.btn-toggle-ativa').addEventListener('click', async () => {
+        const { error } = await supabaseClient.from('questoes').update({ ativa: !q.ativa }).eq('id', q.id);
+        if (error) { card.querySelector('.msg').className = 'small mt-2 text-danger msg'; card.querySelector('.msg').textContent = error.message; return; }
+        carregarQuestoes();
+    });
+
+    card.querySelector('.btn-excluir').addEventListener('click', async () => {
+        if (!confirm('Excluir essa questão? Não dá pra desfazer.')) return;
+        const { error } = await supabaseClient.from('questoes').delete().eq('id', q.id);
+        if (error) { card.querySelector('.msg').className = 'small mt-2 text-danger msg'; card.querySelector('.msg').textContent = error.message; return; }
+        card.remove();
+    });
+
+    return card;
+}
+
+// ================= FORMULÁRIO REAPROVEITÁVEL (criar e editar) =================
+// Se questaoExistente for null, é criação (topico_id vem de uma busca própria dentro do form).
+// Se vier preenchida, é edição (topico_id não muda, não aparece campo pra isso).
+function renderFormularioQuestao(container, questaoExistente, onSalvar, rotuloBotao) {
+    const ehEdicao = !!questaoExistente;
+    const alternativasIniciais = ehEdicao ? questaoExistente.alternativas : { A: '', B: '', C: '', D: '', E: '' };
+    const letras = Object.keys(alternativasIniciais);
+
+    container.innerHTML = `
+        ${ehEdicao ? '' : `
+        <label class="form-label small fw-semibold">Tópico</label>
+        <input type="text" class="form-control form-control-sm mb-1 fq-busca-topico" placeholder="Busca o tópico (3+ letras)...">
+        <div class="list-group mb-2 fq-lista-busca-topico" style="max-height:180px; overflow-y:auto;"></div>
+        <div class="alert alert-light border small d-none fq-topico-escolhido py-1"></div>
+        `}
+
+        <label class="form-label small fw-semibold">Banca <span class="text-secondary fw-normal">(opcional)</span></label>
+        <input type="text" class="form-control form-control-sm mb-1 fq-busca-banca" placeholder="Busca a banca (2+ letras)...">
+        <div class="list-group mb-2 fq-lista-busca-banca" style="max-height:150px; overflow-y:auto;"></div>
+        <div class="small text-secondary mb-2 fq-banca-escolhida"></div>
+
+        <label class="form-label small fw-semibold">Enunciado</label>
+        <textarea class="form-control form-control-sm mb-2 fq-enunciado" rows="3">${ehEdicao ? escapeHtml(questaoExistente.enunciado) : ''}</textarea>
+
+        <label class="form-label small fw-semibold">Formato</label>
+        <select class="form-select form-select-sm mb-2 fq-formato">
+            <option value="2">Certo / Errado (2 alternativas)</option>
+            <option value="5">Múltipla escolha A–E (5 alternativas)</option>
+        </select>
+
+        <div class="fq-alternativas mb-2"></div>
+
+        <label class="form-label small fw-semibold">Resposta correta</label>
+        <select class="form-select form-select-sm mb-2 fq-resposta-correta"></select>
+
+        <label class="form-label small fw-semibold">Justificativa curta <span class="text-secondary fw-normal">(opcional)</span></label>
+        <textarea class="form-control form-control-sm mb-2 fq-justificativa" rows="2">${ehEdicao && questaoExistente.justificativa_curta ? escapeHtml(questaoExistente.justificativa_curta) : ''}</textarea>
+
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <label class="form-label small fw-semibold">Dificuldade</label>
+                <select class="form-select form-select-sm fq-dificuldade">
+                    <option value="facil">Fácil</option>
+                    <option value="medio">Médio</option>
+                    <option value="dificil">Difícil</option>
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">Nível de ensino</label>
+                <select class="form-select form-select-sm fq-nivel-ensino">
+                    <option value="fundamental">Fundamental</option>
+                    <option value="medio">Médio</option>
+                    <option value="superior">Superior</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-navy btn-sm fq-btn-salvar">${rotuloBotao || (ehEdicao ? 'Salvar edição' : 'Criar questão')}</button>
+    `;
+
+    let topicoEscolhidoId = ehEdicao ? questaoExistente.topico_id : null;
+    let bancaEscolhidaId = ehEdicao ? questaoExistente.banca_id : null;
+
+    if (!ehEdicao) {
+        let debounceT = null;
+        const inputTopico = container.querySelector('.fq-busca-topico');
+        inputTopico.addEventListener('input', (e) => {
+            clearTimeout(debounceT);
+            const termo = e.target.value.trim();
+            const listaEl = container.querySelector('.fq-lista-busca-topico');
+            if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+            debounceT = setTimeout(async () => {
+                const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+                listaEl.innerHTML = '';
+                (data || []).forEach(t => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action small py-1';
+                    item.innerHTML = `<strong>${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>`;
+                    item.addEventListener('click', () => {
+                        topicoEscolhidoId = t.id;
+                        const escolhidoEl = container.querySelector('.fq-topico-escolhido');
+                        escolhidoEl.classList.remove('d-none');
+                        escolhidoEl.innerHTML = `<i class="bi bi-check-circle"></i> ${escapeHtml(t.caminho)}`;
+                        listaEl.innerHTML = '';
+                        inputTopico.value = '';
+                    });
+                    listaEl.appendChild(item);
+                });
+            }, 350);
+        });
+    }
+
+    let debounceB = null;
+    const inputBanca = container.querySelector('.fq-busca-banca');
+    inputBanca.addEventListener('input', (e) => {
+        clearTimeout(debounceB);
+        const termo = e.target.value.trim();
+        const listaEl = container.querySelector('.fq-lista-busca-banca');
+        if (termo.length < 2) { listaEl.innerHTML = ''; return; }
+        debounceB = setTimeout(async () => {
+            const { data } = await supabaseClient.from('perfis_banca').select('id, nome').ilike('nome', `%${termo}%`).limit(10);
+            listaEl.innerHTML = '';
+            (data || []).forEach(b => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action small py-1';
+                item.textContent = b.nome;
+                item.addEventListener('click', () => {
+                    bancaEscolhidaId = b.id;
+                    container.querySelector('.fq-banca-escolhida').innerHTML = `<i class="bi bi-check-circle"></i> ${escapeHtml(b.nome)} <button type="button" class="btn btn-link btn-sm p-0 ms-1 fq-limpar-banca">limpar</button>`;
+                    container.querySelector('.fq-limpar-banca').addEventListener('click', () => {
+                        bancaEscolhidaId = null;
+                        container.querySelector('.fq-banca-escolhida').textContent = '';
+                    });
+                    listaEl.innerHTML = '';
+                    inputBanca.value = '';
+                });
+                listaEl.appendChild(item);
+            });
+        }, 300);
+    });
+    if (ehEdicao && questaoExistente.banca_id) {
+        supabaseClient.from('perfis_banca').select('nome').eq('id', questaoExistente.banca_id).maybeSingle().then(({ data: b }) => {
+            if (b) container.querySelector('.fq-banca-escolhida').innerHTML = `<i class="bi bi-check-circle"></i> ${escapeHtml(b.nome)}`;
+        });
+    }
+
+    const selectFormato = container.querySelector('.fq-formato');
+    const wrapAlternativas = container.querySelector('.fq-alternativas');
+    const selectResposta = container.querySelector('.fq-resposta-correta');
+
+    function renderAlternativas(qtd, valoresIniciais) {
+        const todasLetras = ['A', 'B', 'C', 'D', 'E'];
+        const letrasUsar = todasLetras.slice(0, qtd);
+        wrapAlternativas.innerHTML = letrasUsar.map(letra => `
+            <label class="form-label small fw-semibold mb-1">${letra}</label>
+            <input type="text" class="form-control form-control-sm mb-2 fq-alt" data-letra="${letra}" value="${valoresIniciais && valoresIniciais[letra] ? escapeHtml(valoresIniciais[letra]) : ''}">
+        `).join('');
+        selectResposta.innerHTML = letrasUsar.map(l => `<option value="${l}">${l}</option>`).join('');
+        if (ehEdicao && questaoExistente.resposta_correta && letrasUsar.includes(questaoExistente.resposta_correta)) {
+            selectResposta.value = questaoExistente.resposta_correta;
+        }
+    }
+
+    const qtdInicial = letras.length <= 2 ? 2 : 5;
+    selectFormato.value = String(qtdInicial);
+    renderAlternativas(qtdInicial, alternativasIniciais);
+    selectFormato.addEventListener('change', () => renderAlternativas(Number(selectFormato.value), null));
+
+    if (ehEdicao) {
+        if (questaoExistente.dificuldade) container.querySelector('.fq-dificuldade').value = questaoExistente.dificuldade;
+        if (questaoExistente.nivel_ensino) container.querySelector('.fq-nivel-ensino').value = questaoExistente.nivel_ensino;
+    }
+
+    container.querySelector('.fq-btn-salvar').addEventListener('click', async () => {
+        if (!ehEdicao && !topicoEscolhidoId) { alert('Escolhe um tópico primeiro.'); return; }
+
+        const enunciado = container.querySelector('.fq-enunciado').value.trim();
+        if (!enunciado) { alert('Preenche o enunciado.'); return; }
+
+        const alternativas = {};
+        container.querySelectorAll('.fq-alt').forEach(input => {
+            alternativas[input.dataset.letra] = input.value.trim();
+        });
+
+        const dados = {
+            enunciado,
+            alternativas,
+            resposta_correta: selectResposta.value,
+            justificativa_curta: container.querySelector('.fq-justificativa').value.trim() || null,
+            dificuldade: container.querySelector('.fq-dificuldade').value,
+            nivel_ensino: container.querySelector('.fq-nivel-ensino').value,
+            banca_id: bancaEscolhidaId,
+        };
+
+        if (!ehEdicao) {
+            dados.topico_id = topicoEscolhidoId;
+            dados.origem = 'importado_externo';
+            dados.ativa = false;
+            dados.autor_id = userId;
+        }
+
+        await onSalvar(dados);
+    });
+}
+</script>
+
+</body>
+</html>

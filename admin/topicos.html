@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Tópicos — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .linha-topico { padding: 0.3rem 0; border-bottom: 1px solid #f1f1f1; }
+    .badge-contagem { min-width: 30px; }
+    .painel-gerar-ia { background: #fff; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="topicos.html" class="nav-link active"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Tópicos</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="card-soft mb-3" style="max-width:800px;">
+            <label class="form-label small fw-semibold">Buscar tópico direto (3+ letras)</label>
+            <input type="text" id="busca-topico" class="form-control form-control-sm" placeholder="Ex: Licitações, Crase, JPA..." autocomplete="off">
+            <div id="lista-busca" class="list-group mt-2" style="max-height:250px; overflow-y:auto;"></div>
+        </div>
+
+        <div class="card-soft mb-3" style="max-width:800px;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="h6 fw-bold mb-1"><i class="bi bi-bar-chart"></i> Resumo geral</h2>
+                    <p class="text-secondary small mb-0">Quantos tópicos ainda não têm nenhuma questão, no total. Consulta pesada — só roda quando você pedir.</p>
+                </div>
+                <button id="btn-calcular-resumo" class="btn btn-outline-secondary btn-sm text-nowrap">Calcular</button>
+            </div>
+            <div id="resultado-resumo" class="mt-3 d-none"></div>
+        </div>
+
+        <div class="card-soft mb-3" style="max-width:800px;">
+            <h2 class="h6 fw-bold mb-1"><i class="bi bi-stars"></i> Geração em massa</h2>
+            <p class="text-secondary small mb-3">Escolhe um tópico como "raiz" do escopo (busca abaixo), define a faixa de contagem atual e a quantidade por tópico — o sistema gera questões pra todos os tópicos daquele escopo que caírem no filtro.</p>
+
+            <div class="mb-2">
+                <label class="form-label small fw-semibold">1. Escopo (tópico raiz)</label>
+                <input type="text" id="busca-escopo-massa" class="form-control form-control-sm" placeholder="Busca o tópico/matéria que vai ser a raiz do escopo (3+ letras)..." autocomplete="off">
+                <div id="lista-busca-escopo" class="list-group mt-2" style="max-height:200px; overflow-y:auto;"></div>
+                <div id="escopo-selecionado" class="alert alert-light border small mt-2 d-none"></div>
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Contagem mínima</label>
+                    <input type="number" id="massa-contagem-min" class="form-control form-control-sm" placeholder="sem mínimo" min="0">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Contagem máxima</label>
+                    <input type="number" id="massa-contagem-max" class="form-control form-control-sm" placeholder="sem máximo" min="0">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Questões por tópico</label>
+                    <input type="number" id="massa-quantidade" class="form-control form-control-sm" value="5" min="1" max="20">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Dificuldade</label>
+                    <select id="massa-dificuldade" class="form-select form-select-sm">
+                        <option value="facil">Fácil</option>
+                        <option value="medio" selected>Médio</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Nível de ensino</label>
+                    <select id="massa-nivel-ensino" class="form-select form-select-sm">
+                        <option value="">Qualquer nível</option>
+                        <option value="primario">Primário</option>
+                        <option value="fundamental">Fundamental</option>
+                        <option value="medio">Médio</option>
+                        <option value="superior">Superior</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small mb-1">Banca</label>
+                <select id="massa-banca" class="form-select form-select-sm" style="max-width:300px;"></select>
+            </div>
+
+            <button id="btn-buscar-massa" class="btn btn-outline-primary btn-sm" disabled>2. Buscar tópicos que atendem o filtro</button>
+
+            <div id="resultado-busca-massa" class="mt-3 d-none">
+                <div class="alert alert-warning small" id="msg-resultado-massa"></div>
+                <button id="btn-confirmar-massa" class="btn btn-navy btn-sm">3. Confirmar e iniciar geração</button>
+            </div>
+
+            <div id="progresso-massa" class="mt-3 d-none">
+                <div class="progress mb-2" style="height:20px;">
+                    <div id="barra-progresso-massa" class="progress-bar" role="progressbar" style="width:0%">0%</div>
+                </div>
+                <div id="log-progresso-massa" class="small text-secondary" style="max-height:200px; overflow-y:auto;"></div>
+            </div>
+        </div>
+
+        <div class="card-soft" style="max-width:800px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 fw-bold mb-0">Árvore de matérias e tópicos</h2>
+                <div class="small text-secondary">
+                    <span class="badge text-bg-danger">vermelho</span> sem questões ·
+                    <span class="badge text-bg-warning text-dark">amarelo</span> poucas (&lt;5) ·
+                    <span class="badge text-bg-success">verde</span> 5+
+                </div>
+            </div>
+            <div id="arvore-topicos-admin"></div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+let bancasCarregadas = [];
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function classeContagem(n) {
+    if (n === 0) return 'text-bg-danger';
+    if (n < 5) return 'text-bg-warning text-dark';
+    return 'text-bg-success';
+}
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    const { data: bancas } = await supabaseClient.from('perfis_banca').select('id, nome').eq('ativo', true).order('nome');
+    bancasCarregadas = bancas || [];
+    const selectBancaMassa = document.getElementById('massa-banca');
+    bancasCarregadas.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.nome;
+        selectBancaMassa.appendChild(opt);
+    });
+
+    await carregarNivelArvore(null, document.getElementById('arvore-topicos-admin'));
+})();
+
+// ---------- Árvore (mesma lógica de navegação já usada em concursos.html) ----------
+async function carregarNivelArvore(paiId, containerEl) {
+    const { data } = await supabaseClient.rpc('arvore_filhos', { pai_id: paiId });
+    const wrap = document.createElement('div');
+    wrap.className = 'ps-' + (paiId ? '3' : '0');
+
+    (data || []).forEach(item => {
+        wrap.appendChild(criarLinhaTopico(item));
+    });
+
+    containerEl.appendChild(wrap);
+}
+
+function criarLinhaTopico(item) {
+    const linha = document.createElement('div');
+    linha.className = 'linha-topico';
+
+    const cabecalho = document.createElement('div');
+    cabecalho.className = 'd-flex align-items-center gap-2';
+
+    const btnExpandir = document.createElement('button');
+    btnExpandir.type = 'button';
+    btnExpandir.className = 'btn btn-sm btn-link p-0';
+    btnExpandir.style.width = '20px';
+    btnExpandir.innerHTML = item.tem_filhos ? '<i class="bi bi-caret-right-fill"></i>' : '';
+    btnExpandir.style.visibility = item.tem_filhos ? 'visible' : 'hidden';
+
+    const nomeEl = document.createElement('span');
+    nomeEl.className = 'small flex-fill';
+    nomeEl.textContent = item.nome;
+    nomeEl.style.cursor = 'pointer';
+
+    const badgeContagem = document.createElement('span');
+    badgeContagem.className = 'badge badge-contagem text-bg-secondary';
+    badgeContagem.textContent = '?';
+    badgeContagem.style.cursor = 'pointer';
+    badgeContagem.title = 'Clique pra contar questões desse tópico';
+
+    const btnGerar = document.createElement('button');
+    btnGerar.type = 'button';
+    btnGerar.className = 'btn btn-outline-primary btn-sm py-0 px-2';
+    btnGerar.innerHTML = '<i class="bi bi-stars"></i> Gerar';
+    btnGerar.style.fontSize = '0.72rem';
+
+    cabecalho.appendChild(btnExpandir);
+    cabecalho.appendChild(nomeEl);
+    cabecalho.appendChild(badgeContagem);
+    cabecalho.appendChild(btnGerar);
+    linha.appendChild(cabecalho);
+
+    const painelGerar = document.createElement('div');
+    painelGerar.className = 'd-none mt-2 p-2 border rounded painel-gerar-ia';
+    linha.appendChild(painelGerar);
+
+    async function contar() {
+        badgeContagem.textContent = '…';
+        badgeContagem.className = 'badge badge-contagem text-bg-secondary';
+        const { count } = await supabaseClient
+            .from('questoes')
+            .select('id', { count: 'exact', head: true })
+            .eq('topico_id', item.id);
+        const n = count || 0;
+        badgeContagem.textContent = n;
+        badgeContagem.className = 'badge badge-contagem ' + classeContagem(n);
+        return n;
+    }
+    badgeContagem.addEventListener('click', contar);
+
+    // Expandir/recolher filhos
+    let expandido = false;
+    let filhosContainer = null;
+    btnExpandir.addEventListener('click', async () => {
+        if (!item.tem_filhos) return;
+        if (!expandido) {
+            if (!filhosContainer) {
+                filhosContainer = document.createElement('div');
+                linha.appendChild(filhosContainer);
+                await carregarNivelArvore(item.id, filhosContainer);
+            } else {
+                filhosContainer.style.display = '';
+            }
+            btnExpandir.innerHTML = '<i class="bi bi-caret-down-fill"></i>';
+        } else {
+            if (filhosContainer) filhosContainer.style.display = 'none';
+            btnExpandir.innerHTML = '<i class="bi bi-caret-right-fill"></i>';
+        }
+        expandido = !expandido;
+    });
+    nomeEl.addEventListener('click', () => btnExpandir.click());
+
+    // Painel de gerar via IA
+    btnGerar.addEventListener('click', () => {
+        const abrindo = painelGerar.classList.contains('d-none');
+        painelGerar.classList.toggle('d-none');
+        if (abrindo && !painelGerar.dataset.montado) {
+            montarPainelGerar(painelGerar, item, contar);
+            painelGerar.dataset.montado = '1';
+        }
+    });
+
+    return linha;
+}
+
+function montarPainelGerar(painelEl, item, callbackRecontar) {
+    painelEl.innerHTML = `
+        <div class="row g-2 mb-2">
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Banca</label>
+                <select class="form-select form-select-sm sel-banca"></select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Nível de ensino</label>
+                <select class="form-select form-select-sm sel-nivel-ensino">
+                    <option value="">Não informar</option>
+                    <option value="primario">Primário</option>
+                    <option value="fundamental">Fundamental</option>
+                    <option value="medio" selected>Médio</option>
+                    <option value="superior">Superior</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Dificuldade</label>
+                <select class="form-select form-select-sm sel-dificuldade">
+                    <option value="facil">Fácil</option>
+                    <option value="medio" selected>Médio</option>
+                    <option value="dificil">Difícil</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">Quantidade</label>
+                <input type="number" class="form-control form-control-sm inp-quantidade" value="5" min="1" max="20">
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-navy btn-sm w-100 btn-confirmar-gerar">Gerar pra revisar</button>
+            </div>
+        </div>
+        <div class="small text-secondary">
+            <strong>Dificuldade</strong> e <strong>nível de ensino</strong> são independentes — dificuldade é o quão difícil a questão é; nível de ensino é o público-alvo (fundamental/médio/superior). Gera pra você revisar antes — nada é salvo até você clicar em "Salvar" em cada questão.
+        </div>
+        <div class="msg-gerar small mt-1"></div>
+        <div class="lista-rascunhos d-flex flex-column gap-2 mt-2"></div>
+    `;
+
+    const selectBanca = painelEl.querySelector('.sel-banca');
+    bancasCarregadas.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.nome;
+        selectBanca.appendChild(opt);
+    });
+
+    painelEl.querySelector('.btn-confirmar-gerar').addEventListener('click', async () => {
+        const btn = painelEl.querySelector('.btn-confirmar-gerar');
+        const msgEl = painelEl.querySelector('.msg-gerar');
+        const listaEl = painelEl.querySelector('.lista-rascunhos');
+        const banca_id = selectBanca.value;
+        const nivel_ensino = painelEl.querySelector('.sel-nivel-ensino').value || null;
+        const dificuldade = painelEl.querySelector('.sel-dificuldade').value;
+        const quantidade = parseInt(painelEl.querySelector('.inp-quantidade').value, 10) || 5;
+
+        if (!banca_id) {
+            msgEl.className = 'msg-gerar small mt-1 text-danger';
+            msgEl.textContent = 'Escolha uma banca.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        msgEl.className = 'msg-gerar small mt-1 text-secondary';
+        msgEl.textContent = 'Gerando... pode levar um tempo.';
+        listaEl.innerHTML = '';
+
+        const { data, error } = await supabaseClient.functions.invoke('admin-gerar-questoes-preview', {
+            body: { topico_id: item.id, banca_id, dificuldade, quantidade, nivel_ensino }
+        });
+
+        btn.disabled = false;
+        btn.textContent = 'Gerar pra revisar';
+
+        if (error || data?.error) {
+            msgEl.className = 'msg-gerar small mt-1 text-danger';
+            msgEl.textContent = data?.error || error.message;
+            return;
+        }
+
+        const questoes = data.questoes || [];
+        if (questoes.length === 0) {
+            msgEl.className = 'msg-gerar small mt-1 text-warning';
+            msgEl.textContent = 'A IA não retornou nenhuma questão. Tenta de novo.';
+            return;
+        }
+
+        msgEl.className = 'msg-gerar small mt-1 text-success';
+        msgEl.textContent = `${questoes.length} rascunho(s) gerado(s) — revise abaixo antes de salvar.`;
+
+        questoes.forEach(q => {
+            listaEl.appendChild(criarCardRascunho(q, item.id, banca_id, dificuldade, nivel_ensino, data.provedor_ia_id, callbackRecontar));
+        });
+    });
+}
+
+function criarCardRascunho(questao, topicoId, bancaId, dificuldade, nivelEnsino, provedorIaId, callbackRecontar) {
+    // Usa as letras que a IA realmente devolveu — pode ser ["C","E"] (Cebraspe, certo/errado)
+    // ou ["A","B","C","D","E"] (múltipla escolha tradicional). Não força mais um formato fixo.
+    const alternativasOriginais = (questao.alternativas && questao.alternativas.length > 0)
+        ? questao.alternativas
+        : [{ letra: 'A', texto: '' }, { letra: 'B', texto: '' }, { letra: 'C', texto: '' }, { letra: 'D', texto: '' }, { letra: 'E', texto: '' }];
+    const LETRAS = alternativasOriginais.map(a => (a.letra || '').toUpperCase());
+
+    const card = document.createElement('div');
+    card.className = 'border rounded p-2';
+    card.style.background = '#fff';
+
+    const alternativasHtml = alternativasOriginais.map((alt) => {
+        const letra = (alt.letra || '').toUpperCase();
+        return `
+            <div class="input-group input-group-sm mb-1">
+                <span class="input-group-text">${escapeHtml(letra)}</span>
+                <input type="text" class="form-control input-alt-rascunho" data-letra="${escapeHtml(letra)}" value="${escapeHtml(alt.texto || '').replace(/"/g, '&quot;')}">
+            </div>`;
+    }).join('');
+
+    card.innerHTML = `
+        <label class="form-label small fw-semibold mb-1">Enunciado</label>
+        <textarea class="form-control form-control-sm input-enunciado-rascunho mb-2" rows="3">${escapeHtml(questao.enunciado || '')}</textarea>
+
+        <label class="form-label small fw-semibold mb-1">Alternativas</label>
+        ${alternativasHtml}
+
+        <div class="row g-2 mb-2 mt-1">
+            <div class="col-6">
+                <label class="form-label small mb-1">Resposta correta</label>
+                <select class="form-select form-select-sm sel-resposta-rascunho">
+                    ${LETRAS.map(l => `<option value="${l}" ${l === (questao.resposta_correta || '').toUpperCase() ? 'selected' : ''}>${l}</option>`).join('')}
+                </select>
+            </div>
+        </div>
+
+        <label class="form-label small fw-semibold mb-1">Justificativa</label>
+        <textarea class="form-control form-control-sm input-justificativa-rascunho mb-2" rows="2">${escapeHtml(questao.justificativa_curta || '')}</textarea>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-navy btn-sm btn-salvar-rascunho">Salvar</button>
+            <button type="button" class="btn btn-outline-danger btn-sm btn-descartar-rascunho">Descartar</button>
+        </div>
+        <div class="msg-rascunho small mt-1"></div>
+    `;
+
+    card.querySelector('.btn-descartar-rascunho').addEventListener('click', () => card.remove());
+
+    card.querySelector('.btn-salvar-rascunho').addEventListener('click', async () => {
+        const btn = card.querySelector('.btn-salvar-rascunho');
+        const msgEl = card.querySelector('.msg-rascunho');
+
+        const enunciado = card.querySelector('.input-enunciado-rascunho').value.trim();
+        const alternativas = Array.from(card.querySelectorAll('.input-alt-rascunho')).map(inp => ({
+            letra: inp.dataset.letra, texto: inp.value.trim(),
+        }));
+        const resposta_correta = card.querySelector('.sel-resposta-rascunho').value;
+        const justificativa_curta = card.querySelector('.input-justificativa-rascunho').value.trim() || null;
+
+        if (!enunciado || alternativas.some(a => !a.texto)) {
+            msgEl.className = 'msg-rascunho small mt-1 text-danger';
+            msgEl.textContent = 'Preencha o enunciado e todas as 5 alternativas.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        const { error } = await supabaseClient.from('questoes').insert({
+            enunciado, alternativas, resposta_correta, justificativa_curta,
+            banca_id: bancaId, topico_id: topicoId, dificuldade, nivel_ensino: nivelEnsino,
+            origem: 'ia_comunidade', ativa: true, provedor_ia_id: provedorIaId || null,
+        });
+
+        btn.disabled = false;
+
+        if (error) {
+            btn.textContent = 'Salvar';
+            msgEl.className = 'msg-rascunho small mt-1 text-danger';
+            msgEl.textContent = 'Erro: ' + error.message;
+            return;
+        }
+
+        msgEl.className = 'msg-rascunho small mt-1 text-success';
+        msgEl.textContent = 'Salva ✓';
+        card.querySelectorAll('button, input, textarea, select').forEach(el => el.disabled = true);
+        await callbackRecontar();
+    });
+
+    return card;
+}
+
+// ---------- Busca direta ----------
+let debounceBusca = null;
+document.getElementById('busca-topico').addEventListener('input', (e) => {
+    clearTimeout(debounceBusca);
+    const termo = e.target.value.trim();
+    const listaEl = document.getElementById('lista-busca');
+    if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+    debounceBusca = setTimeout(async () => {
+        const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+        listaEl.innerHTML = '';
+        (data || []).forEach(t => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="small">${escapeHtml(t.nome)}</strong><br>
+                        <span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>
+                    </div>
+                    <span class="badge badge-contagem text-bg-secondary badge-resultado-busca" data-id="${t.id}">?</span>
+                </div>
+            `;
+            item.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                const badge = item.querySelector('.badge-resultado-busca');
+                badge.textContent = '…';
+                const { count } = await supabaseClient.from('questoes').select('id', { count: 'exact', head: true }).eq('topico_id', t.id);
+                const n = count || 0;
+                badge.textContent = n;
+                badge.className = 'badge badge-contagem badge-resultado-busca ' + classeContagem(n);
+            });
+            listaEl.appendChild(item);
+        });
+    }, 350);
+});
+
+// ================= GERAÇÃO EM MASSA =================
+
+const LIMITE_TOPICOS_MASSA = 300; // só um aviso: acima disso a execução (sequencial) fica bem demorada/cara
+let escopoMassaId = null;
+let escopoMassaNome = null;
+let topicosQueBatemNoFiltro = []; // [{id, nome, caminho, contagem}]
+
+// ---------- 1. Escolher o escopo (busca) ----------
+let debounceEscopo = null;
+document.getElementById('busca-escopo-massa').addEventListener('input', (e) => {
+    clearTimeout(debounceEscopo);
+    const termo = e.target.value.trim();
+    const listaEl = document.getElementById('lista-busca-escopo');
+    if (termo.length < 3) { listaEl.innerHTML = ''; return; }
+    debounceEscopo = setTimeout(async () => {
+        const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+        listaEl.innerHTML = '';
+        (data || []).forEach(t => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `<strong class="small">${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>`;
+            item.addEventListener('click', () => {
+                escopoMassaId = t.id;
+                escopoMassaNome = t.caminho;
+                document.getElementById('escopo-selecionado').classList.remove('d-none');
+                document.getElementById('escopo-selecionado').innerHTML = `<i class="bi bi-check-circle"></i> Escopo: <strong>${escapeHtml(t.caminho)}</strong>`;
+                document.getElementById('busca-escopo-massa').value = '';
+                listaEl.innerHTML = '';
+                document.getElementById('btn-buscar-massa').disabled = false;
+                // reseta qualquer busca/resultado anterior
+                document.getElementById('resultado-busca-massa').classList.add('d-none');
+                document.getElementById('progresso-massa').classList.add('d-none');
+            });
+            listaEl.appendChild(item);
+        });
+    }, 350);
+});
+
+// ---------- 2. Buscar tópicos que atendem o filtro (numa consulta só, via RPC) ----------
+document.getElementById('btn-buscar-massa').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-buscar-massa');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Buscando...';
+
+    const contagemMin = document.getElementById('massa-contagem-min').value;
+    const contagemMax = document.getElementById('massa-contagem-max').value;
+    const min = contagemMin !== '' ? parseInt(contagemMin, 10) : null;
+    const max = contagemMax !== '' ? parseInt(contagemMax, 10) : null;
+
+    const { data, error } = await supabaseClient.rpc('topicos_com_contagem_no_escopo', {
+        pai_id_param: escopoMassaId, min_param: min, max_param: max
+    });
+
+    btn.disabled = false;
+    btn.textContent = '2. Buscar tópicos que atendem o filtro';
+
+    if (error) {
+        alert('Erro ao buscar: ' + error.message);
+        return;
+    }
+
+    topicosQueBatemNoFiltro = (data || []).map(t => ({ id: t.id, nome: t.nome, contagem: t.contagem }));
+
+    const excedeuLimiteExecucao = topicosQueBatemNoFiltro.length > LIMITE_TOPICOS_MASSA;
+
+    const quantidade = parseInt(document.getElementById('massa-quantidade').value, 10) || 5;
+    const nivelEscolhido = document.getElementById('massa-nivel-ensino').value;
+    const totalEstimado = topicosQueBatemNoFiltro.length * quantidade;
+
+    const ROTULOS_NIVEL_MASSA = { primario: 'Primário', fundamental: 'Fundamental', medio: 'Médio', superior: 'Superior' };
+    const msgEl = document.getElementById('msg-resultado-massa');
+    let html = `<strong>${topicosQueBatemNoFiltro.length}</strong> tópico(s) dentro do escopo bateram no filtro.`;
+    html += `<br>Isso vai gerar até <strong>${totalEstimado}</strong> questão(ões) no total (${quantidade} por tópico), nível <strong>${nivelEscolhido ? (ROTULOS_NIVEL_MASSA[nivelEscolhido] || nivelEscolhido) : 'qualquer'}</strong>, usando créditos da sua conta de admin.`;
+    if (excedeuLimiteExecucao) {
+        html += `<br><span class="text-danger">⚠️ São mais de ${LIMITE_TOPICOS_MASSA} tópicos — a execução é sequencial (um de cada vez) e pode demorar bastante e custar muitos créditos de uma vez. Considere um filtro mais estreito.</span>`;
+    }
+    if (topicosQueBatemNoFiltro.length === 0) {
+        html += '<br>Nenhum tópico bateu no filtro — nada seria gerado.';
+    }
+    msgEl.innerHTML = html;
+
+    document.getElementById('resultado-busca-massa').classList.remove('d-none');
+    document.getElementById('btn-confirmar-massa').disabled = topicosQueBatemNoFiltro.length === 0;
+});
+
+// ---------- 3. Confirmar e executar ----------
+document.getElementById('btn-confirmar-massa').addEventListener('click', async () => {
+    const nomeConfirmacao = prompt(
+        `Confirma gerar questões pra ${topicosQueBatemNoFiltro.length} tópico(s)? Essa ação não pode ser cancelada no meio e vai gastar créditos.\n\nDigite "CONFIRMAR" pra prosseguir:`
+    );
+    if (nomeConfirmacao !== 'CONFIRMAR') return;
+
+    const btn = document.getElementById('btn-confirmar-massa');
+    btn.disabled = true;
+
+    const banca_id = document.getElementById('massa-banca').value;
+    const dificuldade = document.getElementById('massa-dificuldade').value;
+    const nivel_ensino = document.getElementById('massa-nivel-ensino').value || null;
+    const quantidade = parseInt(document.getElementById('massa-quantidade').value, 10) || 5;
+
+    if (!banca_id) {
+        alert('Escolha uma banca antes de confirmar.');
+        btn.disabled = false;
+        return;
+    }
+
+    document.getElementById('progresso-massa').classList.remove('d-none');
+    const barra = document.getElementById('barra-progresso-massa');
+    const log = document.getElementById('log-progresso-massa');
+    log.innerHTML = '';
+
+    let totalGeradas = 0;
+    let totalErros = 0;
+
+    for (let i = 0; i < topicosQueBatemNoFiltro.length; i++) {
+        const t = topicosQueBatemNoFiltro[i];
+        const pct = Math.round(((i + 1) / topicosQueBatemNoFiltro.length) * 100);
+        barra.style.width = pct + '%';
+        barra.textContent = `${pct}% (${i + 1}/${topicosQueBatemNoFiltro.length})`;
+
+        const linhaLog = document.createElement('div');
+        linhaLog.textContent = `${t.nome}: gerando...`;
+        log.appendChild(linhaLog);
+        log.scrollTop = log.scrollHeight;
+
+        try {
+            const { data, error } = await supabaseClient.functions.invoke('gerar-questoes-lote', {
+                body: { topico_ids: [t.id], banca_id, nivel_ensino, dificuldade, modo: 'inedita', quantidade }
+            });
+            if (error || data?.error) {
+                totalErros++;
+                linhaLog.className = 'text-danger';
+                linhaLog.textContent = `${t.nome}: erro — ${data?.error || error.message}`;
+            } else {
+                const geradas = data.gerados ?? (data.resultados || []).length;
+                totalGeradas += geradas;
+                linhaLog.className = 'text-success';
+                linhaLog.textContent = `${t.nome}: ${geradas} gerada(s) ✓`;
+            }
+        } catch (err) {
+            totalErros++;
+            linhaLog.className = 'text-danger';
+            linhaLog.textContent = `${t.nome}: erro inesperado — ${err}`;
+        }
+    }
+
+    const resumoFinal = document.createElement('div');
+    resumoFinal.className = 'fw-bold mt-2';
+    resumoFinal.textContent = `Concluído: ${totalGeradas} questão(ões) geradas no total${totalErros > 0 ? `, ${totalErros} tópico(s) com erro` : ''}.`;
+    log.appendChild(resumoFinal);
+
+    btn.disabled = false;
+    btn.textContent = 'Concluído — pode rodar de novo se quiser';
+});
+
+// ================= RESUMO GERAL =================
+
+document.getElementById('btn-calcular-resumo').addEventListener('click', async () => {
+    if (!confirm('Calcular o resumo geral da árvore inteira. Confirma que quer rodar agora?')) return;
+
+    const btn = document.getElementById('btn-calcular-resumo');
+    const resultadoEl = document.getElementById('resultado-resumo');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Calculando...';
+    resultadoEl.classList.remove('d-none');
+    resultadoEl.innerHTML = '<div class="text-secondary small">Calculando...</div>';
+
+    const { data, error } = await supabaseClient.rpc('resumo_geral_topicos');
+
+    btn.disabled = false;
+    btn.textContent = 'Calcular de novo';
+
+    if (error) {
+        resultadoEl.innerHTML = `<div class="text-danger small">${error.message}</div>`;
+        return;
+    }
+
+    const linha = (data && data[0]) || { total_topicos: 0, sem_questao: 0, com_poucas: 0, com_boas: 0 };
+    const total = Number(linha.total_topicos);
+    const semQuestao = Number(linha.sem_questao);
+    const comPoucas = Number(linha.com_poucas);
+    const comBoas = Number(linha.com_boas);
+    const pctSemQuestao = total > 0 ? ((semQuestao / total) * 100).toFixed(1) : '0';
+
+    resultadoEl.innerHTML = `
+        <div class="row g-2">
+            <div class="col-6 col-md-3">
+                <div class="border rounded p-2 text-center">
+                    <div class="h5 fw-bold mb-0">${total}</div>
+                    <div class="small text-secondary">Tópicos no total</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="border rounded p-2 text-center">
+                    <div class="h5 fw-bold mb-0 text-danger">${semQuestao} (${pctSemQuestao}%)</div>
+                    <div class="small text-secondary">Sem nenhuma questão</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="border rounded p-2 text-center">
+                    <div class="h5 fw-bold mb-0 text-warning">${comPoucas}</div>
+                    <div class="small text-secondary">Com poucas (&lt;5)</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="border rounded p-2 text-center">
+                    <div class="h5 fw-bold mb-0 text-success">${comBoas}</div>
+                    <div class="small text-secondary">Com 5 ou mais</div>
+                </div>
+            </div>
+        </div>
+    `;
+});
+</script>
+
+</body>
+</html>

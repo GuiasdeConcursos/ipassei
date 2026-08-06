@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Editais — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    .tab-editais-btn { border: none; background: none; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 600; color: var(--bs-secondary-color, #6c757d); border-bottom: 2px solid transparent; }
+    .tab-editais-btn.active { color: var(--bs-body-color, #212529); border-bottom-color: currentColor; }
+    .card-concurso-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; min-height: 110px; text-align: center; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link active"><i class="bi bi-file-earmark-text"></i> Editais</a>
+                <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Editais</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="border-bottom mb-4 d-flex gap-2">
+            <button type="button" id="tab-btn-processar" class="tab-editais-btn active">
+                <i class="bi bi-cloud-upload"></i> Processar edital novo
+            </button>
+            <button type="button" id="tab-btn-editar" class="tab-editais-btn">
+                <i class="bi bi-pencil-square"></i> Editar editais existentes
+            </button>
+        </div>
+
+        <!-- ===================== ABA: PROCESSAR ===================== -->
+        <div id="tab-processar">
+
+            <div class="card-soft mb-4" style="max-width:650px;">
+                <h2 class="h6 fw-bold mb-2">1. Processe o edital localmente</h2>
+                <p class="text-secondary small">
+                    Editais grandes estouram o limite de 150s do Supabase. Por isso, o processamento agora roda no seu computador, sem pressa nenhuma, usando o script <code>processar_edital.py</code>.
+                </p>
+                <ol class="small text-secondary">
+                    <li>Baixa o script (já te enviei antes, ou peça de novo)</li>
+                    <li>Roda: <code>python processar_edital.py caminho/do/edital.pdf [anexos.pdf...]</code></li>
+                    <li>Abre o arquivo <code>..._resultado.json</code> gerado, copia tudo</li>
+                    <li>Cola aqui embaixo</li>
+                </ol>
+            </div>
+
+            <div class="card-soft mb-4" style="max-width:650px;">
+                <h2 class="h6 fw-bold mb-2">2. Cole o resultado processado</h2>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Concurso</label>
+                    <select id="select-concurso" class="form-select form-select-sm"></select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Nome do arquivo (opcional, só pra referência)</label>
+                    <input type="text" id="input-nome-arquivo" class="form-control form-control-sm" placeholder="edital_cesama_2026.pdf">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Conteúdo do JSON</label>
+                    <textarea id="input-json" class="form-control form-control-sm" rows="8" placeholder='Cole aqui o conteúdo do arquivo _resultado.json'></textarea>
+                </div>
+                <div id="status-processamento" class="text-secondary small mb-2"></div>
+                <button id="btn-visualizar" class="btn btn-outline-primary btn-sm">Pré-visualizar (não salva ainda)</button>
+            </div>
+
+            <div id="resultado-edital" class="d-none" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2">Prévia do que foi extraído — confira antes de enviar</h2>
+                <div id="conteudo-resultado" class="card-soft mb-3"></div>
+
+                <div class="alert alert-warning small" id="aviso-confirmacao">
+                    <i class="bi bi-exclamation-triangle"></i> Nada foi salvo ainda. Revise os dados acima — se estiver tudo certo, confirma o envio abaixo.
+                </div>
+
+                <div class="d-flex gap-2 mb-3">
+                    <button id="btn-confirmar-envio" class="btn btn-gold btn-sm">Confirmar e enviar pro banco</button>
+                    <button id="btn-descartar" class="btn btn-outline-secondary btn-sm">Descartar e editar o JSON</button>
+                </div>
+
+                <div id="pos-envio" class="d-none">
+                    <button id="btn-importar-cargos" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-briefcase"></i> Criar os cargos extraídos como registros reais
+                    </button>
+                    <div id="msg-cargos" class="small mt-2"></div>
+                </div>
+            </div>
+
+            <div id="painel-vinculo-materias" class="d-none" style="max-width:700px;">
+                <h2 class="h6 fw-bold mb-2">3. Matérias por cargo — revise antes de vincular</h2>
+                <p class="text-secondary small">
+                    Essas foram as matérias que a IA já identificou e associou a cada cargo do edital.
+                    Desmarque o que não fizer sentido vincular. Quando estiver tudo certo, clique em
+                    <strong>"Vincular por similaridade"</strong> — só então cada matéria/tópico é casado
+                    com a árvore de assuntos do banco (<code>buscar_melhor_topico</code>). Nada é vinculado
+                    antes disso.
+                </p>
+                <div id="lista-materias-por-cargo" class="d-flex flex-column gap-2 mb-3"></div>
+                <button id="btn-vincular-similaridade" class="btn btn-gold btn-sm mb-3">
+                    <i class="bi bi-diagram-3"></i> Vincular por similaridade
+                </button>
+
+                <div id="status-vinculo" class="alert alert-info small d-none"></div>
+                <div id="lista-pendentes-vinculo" class="d-flex flex-column gap-2"></div>
+            </div>
+
+        </div>
+
+        <!-- ===================== ABA: EDITAR ===================== -->
+        <div id="tab-editar" class="d-none">
+
+            <div id="bloco-grid-concursos">
+                <p class="text-secondary small mb-3">Clique no concurso que você quer editar.</p>
+                <div id="grid-concursos-editar" class="row g-3"></div>
+            </div>
+
+            <div id="painel-editar-concurso" class="d-none" style="max-width:700px;">
+                <button id="btn-voltar-grid" class="btn btn-outline-secondary btn-sm mb-3">
+                    <i class="bi bi-arrow-left"></i> Voltar pra lista de concursos
+                </button>
+                <h2 class="h6 fw-bold mb-3" id="titulo-editar-concurso"></h2>
+
+                <div id="aviso-sem-edital" class="text-secondary small fst-italic d-none mb-3">Esse concurso ainda não tem edital nem cargos salvos. Processe um edital na aba "Processar edital novo".</div>
+
+                <div id="painel-editar-conteudo" class="d-none">
+                    <div class="card-soft mb-3">
+                        <label class="form-label small fw-semibold">Informações do edital (JSON)</label>
+                        <textarea id="input-json-editar" class="form-control form-control-sm" rows="10"></textarea>
+                        <button id="btn-salvar-edicao-edital" class="btn btn-outline-primary btn-sm mt-2">Salvar alterações do edital</button>
+                        <div id="status-edicao-edital" class="small mt-2"></div>
+                    </div>
+
+                    <h3 class="h6 fw-semibold mb-2">Cargos cadastrados desse concurso</h3>
+                    <div id="lista-cargos-editar" class="d-flex flex-column gap-2"></div>
+                </div>
+
+                <div class="card-soft mt-4 border border-danger-subtle">
+                    <h3 class="h6 fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle"></i> Zona de risco</h3>
+
+                    <div class="mb-3">
+                        <button id="btn-excluir-edital" class="btn btn-outline-danger btn-sm">Excluir edital</button>
+                        <div class="form-text">Remove só o JSON processado (<code>concurso_edital</code>). Os cargos e os vínculos de matéria continuam existindo.</div>
+                    </div>
+
+                    <div>
+                        <button id="btn-excluir-concurso" class="btn btn-danger btn-sm">Excluir concurso inteiro</button>
+                        <div class="form-text">Apaga o concurso, todos os cargos, o edital e todos os vínculos de matéria (<code>concurso_topicos</code>). Não tem como desfazer — vai pedir pra digitar o nome do concurso pra confirmar.</div>
+                    </div>
+
+                    <div id="msg-exclusao" class="small mt-2"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+let listaConcursos = [];
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+
+    const { data: concursos } = await supabaseClient.from('concursos').select('id, nome, logo_url').eq('ativo', true).order('nome');
+    listaConcursos = concursos || [];
+
+    const select = document.getElementById('select-concurso');
+    listaConcursos.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        select.appendChild(opt);
+    });
+
+    montarGridConcursos(listaConcursos);
+})();
+
+// ---------- Alternância de abas ----------
+
+document.getElementById('tab-btn-processar').addEventListener('click', () => trocarAba('processar'));
+document.getElementById('tab-btn-editar').addEventListener('click', () => trocarAba('editar'));
+
+function trocarAba(nome) {
+    const ehProcessar = nome === 'processar';
+    document.getElementById('tab-processar').classList.toggle('d-none', !ehProcessar);
+    document.getElementById('tab-editar').classList.toggle('d-none', ehProcessar);
+    document.getElementById('tab-btn-processar').classList.toggle('active', ehProcessar);
+    document.getElementById('tab-btn-editar').classList.toggle('active', !ehProcessar);
+}
+
+// ================= ABA PROCESSAR =================
+
+let dadosPendentes = null;
+let ultimoConcursoId = null;
+let ultimosCargos = [];
+let estadoVinculo = []; // { id, cargoId, cargoNome, materia, topicos, incluir }
+
+document.getElementById('btn-visualizar').addEventListener('click', () => {
+    const jsonTexto = document.getElementById('input-json').value.trim();
+    const statusEl = document.getElementById('status-processamento');
+
+    if (!document.getElementById('select-concurso').value) {
+        statusEl.textContent = 'Escolha um concurso primeiro.';
+        statusEl.className = 'small text-danger mb-2';
+        return;
+    }
+    if (!jsonTexto) {
+        statusEl.textContent = 'Cole o conteúdo do JSON gerado pelo script.';
+        statusEl.className = 'small text-danger mb-2';
+        return;
+    }
+
+    let informacoes;
+    try {
+        informacoes = JSON.parse(jsonTexto);
+    } catch (e) {
+        statusEl.textContent = 'JSON inválido — confere se copiou o arquivo inteiro, sem cortar nada.';
+        statusEl.className = 'small text-danger mb-2';
+        return;
+    }
+
+    statusEl.textContent = '';
+    dadosPendentes = informacoes;
+    document.getElementById('pos-envio').classList.add('d-none');
+    document.getElementById('painel-vinculo-materias').classList.add('d-none');
+    document.getElementById('aviso-confirmacao').classList.remove('d-none');
+    document.getElementById('btn-confirmar-envio').disabled = false;
+    document.getElementById('btn-confirmar-envio').textContent = 'Confirmar e enviar pro banco';
+    mostrarResultado(informacoes);
+});
+
+document.getElementById('btn-descartar').addEventListener('click', () => {
+    dadosPendentes = null;
+    document.getElementById('resultado-edital').classList.add('d-none');
+    document.getElementById('painel-vinculo-materias').classList.add('d-none');
+    document.getElementById('input-json').focus();
+});
+
+document.getElementById('btn-confirmar-envio').addEventListener('click', async () => {
+    if (!dadosPendentes) return;
+    const concursoId = document.getElementById('select-concurso').value;
+    const nomeArquivo = document.getElementById('input-nome-arquivo').value.trim() || null;
+    const btn = document.getElementById('btn-confirmar-envio');
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    const { error } = await supabaseClient.from('concurso_edital').upsert({
+        concurso_id: concursoId,
+        nome_arquivo: nomeArquivo,
+        texto_extraido: null,
+        informacoes: dadosPendentes,
+        atualizado_em: new Date().toISOString(),
+    }, { onConflict: 'concurso_id' });
+
+    if (error) {
+        alert('Erro ao salvar: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = 'Confirmar e enviar pro banco';
+        return;
+    }
+
+    btn.textContent = 'Enviado ✓';
+    document.getElementById('aviso-confirmacao').classList.add('d-none');
+    document.getElementById('pos-envio').classList.remove('d-none');
+
+    ultimoConcursoId = concursoId;
+    ultimosCargos = dadosPendentes.cargos || [];
+});
+
+function inferirNivelEnsino(requisitos) {
+    const texto = (requisitos || '').toLowerCase();
+    if (texto.includes('superior') || texto.includes('graduação') || texto.includes('bacharel')) return 'superior';
+    if (texto.includes('médio') || texto.includes('medio') || texto.includes('técnico') || texto.includes('tecnico')) return 'medio';
+    if (texto.includes('fundamental')) return 'fundamental';
+    if (texto.includes('primári') || texto.includes('alfabetiz')) return 'primario';
+    return null;
+}
+
+document.getElementById('btn-importar-cargos').addEventListener('click', async () => {
+    const msgEl = document.getElementById('msg-cargos');
+    if (!ultimosCargos.length) {
+        msgEl.className = 'small mt-2 text-warning';
+        msgEl.textContent = 'Esse edital não trouxe cargos identificados.';
+        return;
+    }
+
+    const linhas = ultimosCargos.map(c => ({
+        concurso_id: ultimoConcursoId,
+        nome: c.nome || 'Cargo sem nome',
+        nivel_ensino: inferirNivelEnsino(c.requisitos),
+        vagas: c.vagas || null,
+        salario: c.salario || null,
+        requisitos: c.requisitos || null,
+    }));
+
+    const { data: cargosInseridos, error } = await supabaseClient.from('concurso_cargos').insert(linhas).select();
+
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        return;
+    }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = `${linhas.length} cargo(s) criado(s)! Revise as matérias abaixo antes de vincular.`;
+
+    montarPainelMaterias(cargosInseridos);
+});
+
+// Monta a lista de matérias/tópicos identificados pela IA, por cargo (e o bloco geral),
+// pra revisão manual ANTES de disparar qualquer chamada de similaridade contra o banco.
+function montarPainelMaterias(cargosInseridos) {
+    const painel = document.getElementById('painel-vinculo-materias');
+    const listaEl = document.getElementById('lista-materias-por-cargo');
+    listaEl.innerHTML = '';
+    document.getElementById('status-vinculo').classList.add('d-none');
+    document.getElementById('lista-pendentes-vinculo').innerHTML = '';
+
+    estadoVinculo = [];
+    let idx = 0;
+
+    const conteudoGeral = normalizarBlocosConteudo(dadosPendentes && dadosPendentes.conteudo_programatico_geral);
+    conteudoGeral.forEach(bloco => {
+        estadoVinculo.push({
+            id: idx++, cargoId: null, cargoNome: '(Geral — todos os cargos)',
+            materia: bloco.materia, topicos: bloco.topicos || [], importancia: bloco.importancia || 'media', incluir: true,
+        });
+    });
+
+    cargosInseridos.forEach((cargoDb, i) => {
+        const cargoOriginal = ultimosCargos[i];
+        const conteudo = normalizarBlocosConteudo(cargoOriginal && cargoOriginal.conteudo_programatico);
+        conteudo.forEach(bloco => {
+            estadoVinculo.push({
+                id: idx++, cargoId: cargoDb.id, cargoNome: cargoDb.nome,
+                materia: bloco.materia, topicos: bloco.topicos || [], importancia: bloco.importancia || 'media', incluir: true,
+            });
+        });
+    });
+
+    if (!estadoVinculo.length) {
+        listaEl.innerHTML = '<div class="small text-secondary fst-italic">Nenhuma matéria identificada pela IA pra revisar.</div>';
+        document.getElementById('btn-vincular-similaridade').disabled = true;
+        painel.classList.remove('d-none');
+        return;
+    }
+
+    const grupos = [];
+    const indicePorCargo = {};
+    estadoVinculo.forEach(item => {
+        const chave = item.cargoId === null ? '__geral__' : item.cargoId;
+        if (!(chave in indicePorCargo)) {
+            indicePorCargo[chave] = grupos.length;
+            grupos.push({ cargoNome: item.cargoNome, itens: [] });
+        }
+        grupos[indicePorCargo[chave]].itens.push(item);
+    });
+
+    grupos.forEach(grupo => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        let html = `<div class="small fw-semibold mb-2">${grupo.cargoNome}</div>`;
+        grupo.itens.forEach(item => {
+            html += `
+                <div class="form-check mb-1">
+                    <input class="form-check-input chk-materia" type="checkbox" checked data-id="${item.id}" id="chk-${item.id}">
+                    <label class="form-check-label small" for="chk-${item.id}">
+                        <strong>${item.materia}</strong>
+                        <span class="badge text-bg-secondary">${item.importancia}</span>
+                        ${item.topicos.length ? `<span class="text-secondary"> — ${item.topicos.length} tópico(s)</span>` : '<span class="text-secondary"> — sem tópicos detalhados, vincula pela matéria</span>'}
+                    </label>
+                </div>`;
+        });
+        card.innerHTML = html;
+        listaEl.appendChild(card);
+    });
+
+    listaEl.querySelectorAll('.chk-materia').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+            const id = Number(e.target.dataset.id);
+            const item = estadoVinculo.find(x => x.id === id);
+            if (item) item.incluir = e.target.checked;
+        });
+    });
+
+    const btnVincular = document.getElementById('btn-vincular-similaridade');
+    btnVincular.disabled = false;
+    btnVincular.textContent = 'Vincular por similaridade';
+    painel.classList.remove('d-none');
+}
+
+document.getElementById('btn-vincular-similaridade').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-vincular-similaridade');
+    const selecionados = estadoVinculo.filter(item => item.incluir);
+
+    if (!selecionados.length) {
+        alert('Marque ao menos uma matéria pra vincular.');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Vinculando...';
+    await vincularMateriasDosCargos(selecionados, ultimoConcursoId);
+    btn.textContent = 'Vincular por similaridade (rodar de novo)';
+    btn.disabled = false;
+});
+
+// Só é chamada quando o admin clica em "Vincular por similaridade" — nunca automaticamente.
+async function vincularMateriasDosCargos(itensSelecionados, concursoId) {
+    const statusEl = document.getElementById('status-vinculo');
+    const listaEl = document.getElementById('lista-pendentes-vinculo');
+    statusEl.classList.remove('d-none');
+    statusEl.textContent = 'Vinculando, aguarde...';
+    listaEl.innerHTML = '';
+
+    let totalTentativas = 0, totalCasados = 0;
+    const pendentes = [];
+
+    for (const item of itensSelecionados) {
+        const assuntos = item.topicos && item.topicos.length > 0 ? item.topicos : [item.materia];
+        for (const assunto of assuntos) {
+            totalTentativas++;
+            const { data: melhor } = await supabaseClient.rpc('buscar_melhor_topico', { termo: assunto, contexto_materia: item.materia });
+            const encontrado = melhor && melhor.length > 0 ? melhor[0] : null;
+
+            if (encontrado) {
+                const { error: linkError } = await supabaseClient.from('concurso_topicos').insert({
+                    concurso_id: concursoId, cargo_id: item.cargoId, topico_id: encontrado.id, relevancia: item.importancia || 'media',
+                });
+                if (!linkError || linkError.code === '23505') totalCasados++;
+            } else {
+                pendentes.push({ cargoNome: item.cargoNome, cargoId: item.cargoId, materia: item.materia, assunto, importancia: item.importancia || 'media' });
+            }
+        }
+    }
+
+    statusEl.textContent = `${totalCasados} de ${totalTentativas} matérias vinculadas automaticamente. ${pendentes.length} precisam de revisão manual (abaixo).`;
+
+    pendentes.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="small mb-1"><strong>Cargo:</strong> ${p.cargoNome}</div>
+            <div class="small text-secondary mb-2">${p.materia} <span class="badge text-bg-secondary">${p.importancia}</span> — ${p.assunto}</div>
+            <input type="text" class="form-control form-control-sm input-busca" placeholder="Buscar tópico real (3+ letras)">
+            <div class="lista-sugestoes list-group mt-1" style="max-height:130px; overflow-y:auto;"></div>
+            <div class="topico-escolhido text-success small mt-1"></div>
+        `;
+        let debounce = null;
+        const buscaInput = card.querySelector('.input-busca');
+        buscaInput.addEventListener('input', (e) => {
+            clearTimeout(debounce);
+            const termo = e.target.value.trim();
+            const listaSug = card.querySelector('.lista-sugestoes');
+            if (termo.length < 3) { listaSug.innerHTML = ''; return; }
+            debounce = setTimeout(async () => {
+                const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+                listaSug.innerHTML = '';
+                (data || []).forEach(t => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action small py-1';
+                    item.innerHTML = `<strong>${t.nome}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${t.caminho}</span>`;
+                    item.addEventListener('click', async () => {
+                        await supabaseClient.from('concurso_topicos').insert({
+                            concurso_id: concursoId, cargo_id: p.cargoId, topico_id: t.id, relevancia: p.importancia || 'media',
+                        });
+                        card.querySelector('.topico-escolhido').textContent = '✓ Vinculado: ' + t.caminho;
+                        listaSug.innerHTML = '';
+                        buscaInput.value = '';
+                        buscaInput.disabled = true;
+                    });
+                    listaSug.appendChild(item);
+                });
+            }, 350);
+        });
+        listaEl.appendChild(card);
+    });
+}
+
+function mostrarResultado(info) {
+    const el = document.getElementById('conteudo-resultado');
+    let html = `<p class="small">${info.resumo_geral || ''}</p>`;
+    if (info.orgao_responsavel) html += `<div class="small mb-1"><strong>Órgão:</strong> ${info.orgao_responsavel}</div>`;
+    if (info.banca_organizadora) html += `<div class="small mb-1"><strong>Banca:</strong> ${info.banca_organizadora}</div>`;
+    if (info.taxa_inscricao) html += `<div class="small mb-1"><strong>Taxa:</strong> ${info.taxa_inscricao}</div>`;
+    if (info.salario_geral) html += `<div class="small mb-2"><strong>Salário:</strong> ${info.salario_geral}</div>`;
+
+    if (info.cargos && info.cargos.length > 0) {
+        html += `<div class="small fw-bold mt-2 mb-1">Cargos</div>`;
+        info.cargos.forEach(c => {
+            html += `<div class="border rounded p-2 mb-2">`;
+            html += `<div class="small fw-semibold">• ${c.nome} — ${c.vagas || '?'} vaga(s) — ${c.salario || '—'}</div>`;
+            if (c.requisitos) html += `<div class="small text-secondary">Requisitos: ${c.requisitos}</div>`;
+            const conteudoCargo = normalizarBlocosConteudo(c.conteudo_programatico);
+            if (conteudoCargo.length > 0) {
+                html += `<div class="small mt-1"><strong>Conteúdo programático desse cargo:</strong></div>`;
+                conteudoCargo.forEach(m => {
+                    const tagImportancia = m.importancia ? ` <span class="badge text-bg-secondary">${m.importancia}</span>` : '';
+                    html += `<div class="small text-secondary">– ${m.materia}${tagImportancia}: ${(m.topicos || []).join(', ')}</div>`;
+                });
+            } else {
+                html += `<div class="small text-secondary fst-italic mt-1">Nenhum conteúdo programático específico identificado pra esse cargo.</div>`;
+            }
+            html += `</div>`;
+        });
+    }
+    if (info.cronograma && info.cronograma.length > 0) {
+        html += `<div class="small fw-bold mt-2 mb-1">Cronograma</div>`;
+        info.cronograma.forEach(c => {
+            html += `<div class="small mb-1">• ${c.evento}: ${c.data}</div>`;
+        });
+    }
+    const conteudoGeralPreview = normalizarBlocosConteudo(info.conteudo_programatico_geral);
+    if (conteudoGeralPreview.length > 0) {
+        html += `<div class="small fw-bold mt-2 mb-1">Conteúdo programático geral (comum a todos os cargos)</div>`;
+        conteudoGeralPreview.forEach(m => {
+            const tagImportancia = m.importancia ? ` <span class="badge text-bg-secondary">${m.importancia}</span>` : '';
+            html += `<div class="small mb-1">• <strong>${m.materia}</strong>${tagImportancia}: ${(m.topicos || []).join(', ')}</div>`;
+        });
+    }
+    if (info.informacoes_adicionais) {
+        html += `<div class="small fw-bold mt-2 mb-1">Outras informações</div><p class="small">${info.informacoes_adicionais}</p>`;
+    }
+
+    el.innerHTML = html;
+    document.getElementById('resultado-edital').classList.remove('d-none');
+}
+
+// ================= ABA EDITAR =================
+
+let concursoEmEdicao = null;
+let editalInformacoesAtual = null;
+
+function montarGridConcursos(concursos) {
+    const grid = document.getElementById('grid-concursos-editar');
+    grid.innerHTML = '';
+
+    if (!concursos.length) {
+        grid.innerHTML = '<div class="small text-secondary fst-italic">Nenhum concurso ativo cadastrado ainda.</div>';
+        return;
+    }
+
+    concursos.forEach(c => {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3';
+        const iconeHtml = c.logo_url
+            ? `<img src="${escapeHtml(c.logo_url)}" alt="" style="width:40px; height:40px; object-fit:contain;" onerror="this.replaceWith(Object.assign(document.createElement('i'), {className:'bi bi-mortarboard fs-2'}))">`
+            : '<i class="bi bi-mortarboard fs-2"></i>';
+        col.innerHTML = `
+            <button type="button" class="btn btn-outline-secondary w-100 card-concurso-btn" data-id="${c.id}">
+                ${iconeHtml}
+                <span class="small">${escapeHtml(c.nome)}</span>
+            </button>`;
+        col.querySelector('.card-concurso-btn').addEventListener('click', () => abrirEdicaoConcurso(c.id, c.nome));
+        grid.appendChild(col);
+    });
+}
+
+async function abrirEdicaoConcurso(concursoId, nome) {
+    concursoEmEdicao = concursoId;
+    document.getElementById('bloco-grid-concursos').classList.add('d-none');
+    document.getElementById('painel-editar-concurso').classList.remove('d-none');
+    document.getElementById('titulo-editar-concurso').textContent = nome;
+    await carregarEdicaoExistente(concursoId);
+}
+
+document.getElementById('btn-voltar-grid').addEventListener('click', () => {
+    document.getElementById('painel-editar-concurso').classList.add('d-none');
+    document.getElementById('bloco-grid-concursos').classList.remove('d-none');
+    concursoEmEdicao = null;
+});
+
+async function carregarEdicaoExistente(concursoId) {
+    const avisoVazio = document.getElementById('aviso-sem-edital');
+    const painelConteudo = document.getElementById('painel-editar-conteudo');
+    document.getElementById('status-edicao-edital').textContent = '';
+
+    const { data: edital } = await supabaseClient.from('concurso_edital').select('*').eq('concurso_id', concursoId).maybeSingle();
+    const { data: cargos } = await supabaseClient.from('concurso_cargos').select('*').eq('concurso_id', concursoId).order('nome');
+
+    editalInformacoesAtual = edital ? edital.informacoes : null;
+
+    if (!edital && (!cargos || !cargos.length)) {
+        avisoVazio.classList.remove('d-none');
+        painelConteudo.classList.add('d-none');
+        return;
+    }
+
+    avisoVazio.classList.add('d-none');
+    painelConteudo.classList.remove('d-none');
+    document.getElementById('input-json-editar').value = edital ? JSON.stringify(edital.informacoes, null, 2) : '';
+    montarListaCargosEditar(cargos || []);
+}
+
+document.getElementById('btn-salvar-edicao-edital').addEventListener('click', async () => {
+    if (!concursoEmEdicao) return;
+    const statusEl = document.getElementById('status-edicao-edital');
+    const texto = document.getElementById('input-json-editar').value.trim();
+
+    let informacoes;
+    try {
+        informacoes = texto ? JSON.parse(texto) : {};
+    } catch (e) {
+        statusEl.className = 'small mt-2 text-danger';
+        statusEl.textContent = 'JSON inválido — confere a sintaxe antes de salvar.';
+        return;
+    }
+
+    const { error } = await supabaseClient.from('concurso_edital').upsert({
+        concurso_id: concursoEmEdicao,
+        informacoes,
+        atualizado_em: new Date().toISOString(),
+    }, { onConflict: 'concurso_id' });
+
+    statusEl.className = error ? 'small mt-2 text-danger' : 'small mt-2 text-success';
+    statusEl.textContent = error ? ('Erro: ' + error.message) : 'Alterações do edital salvas ✓';
+});
+
+function montarListaCargosEditar(cargos) {
+    const listaEl = document.getElementById('lista-cargos-editar');
+    listaEl.innerHTML = '';
+
+    if (!cargos.length) {
+        listaEl.innerHTML = '<div class="small text-secondary fst-italic">Nenhum cargo cadastrado ainda pra esse concurso.</div>';
+        return;
+    }
+
+    const niveis = ['fundamental', 'medio', 'superior', 'primario'];
+
+    cargos.forEach(cargo => {
+        const card = document.createElement('div');
+        card.className = 'card-soft';
+        card.innerHTML = `
+            <div class="row g-2">
+                <div class="col-12">
+                    <label class="form-label small mb-1">Nome</label>
+                    <input type="text" class="form-control form-control-sm campo-nome" value="${escapeHtml(cargo.nome || '')}">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Nível</label>
+                    <select class="form-select form-select-sm campo-nivel">
+                        <option value="">—</option>
+                        ${niveis.map(n => `<option value="${n}" ${cargo.nivel_ensino === n ? 'selected' : ''}>${n}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">Vagas</label>
+                    <input type="number" class="form-control form-control-sm campo-vagas" value="${cargo.vagas ?? ''}">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label small mb-1">Salário</label>
+                    <input type="text" class="form-control form-control-sm campo-salario" value="${escapeHtml(cargo.salario ?? '')}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label small mb-1">Requisitos</label>
+                    <textarea class="form-control form-control-sm campo-requisitos" rows="2">${escapeHtml(cargo.requisitos || '')}</textarea>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-2">
+                <button class="btn btn-outline-primary btn-sm btn-salvar-cargo">Salvar</button>
+                <button class="btn btn-outline-danger btn-sm btn-excluir-cargo">Excluir cargo</button>
+                <button class="btn btn-outline-secondary btn-sm btn-toggle-vinculo">Ver assuntos e vínculos</button>
+            </div>
+            <div class="small mt-1 msg-cargo-linha"></div>
+            <div class="vinculo-cargo-painel d-none mt-2" data-aberto="0"></div>
+        `;
+
+        card.querySelector('.btn-salvar-cargo').addEventListener('click', async () => {
+            const msgEl = card.querySelector('.msg-cargo-linha');
+            const atualizacao = {
+                nome: card.querySelector('.campo-nome').value.trim(),
+                nivel_ensino: card.querySelector('.campo-nivel').value || null,
+                vagas: card.querySelector('.campo-vagas').value ? Number(card.querySelector('.campo-vagas').value) : null,
+                salario: card.querySelector('.campo-salario').value.trim() || null,
+                requisitos: card.querySelector('.campo-requisitos').value.trim() || null,
+            };
+            const { error } = await supabaseClient.from('concurso_cargos').update(atualizacao).eq('id', cargo.id);
+            msgEl.className = error ? 'small mt-1 text-danger' : 'small mt-1 text-success';
+            msgEl.textContent = error ? ('Erro: ' + error.message) : 'Salvo ✓';
+        });
+
+        card.querySelector('.btn-excluir-cargo').addEventListener('click', async () => {
+            if (!confirm(`Excluir o cargo "${cargo.nome}"? Isso também remove os vínculos de matéria dele (concurso_topicos).`)) return;
+            const { error } = await supabaseClient.from('concurso_cargos').delete().eq('id', cargo.id);
+            const msgEl = card.querySelector('.msg-cargo-linha');
+            if (error) {
+                msgEl.className = 'small mt-1 text-danger';
+                msgEl.textContent = 'Erro: ' + error.message;
+                return;
+            }
+            card.remove();
+        });
+
+        card.querySelector('.btn-toggle-vinculo').addEventListener('click', (e) => {
+            toggleVinculoCargo(cargo, card.querySelector('.vinculo-cargo-painel'), e.target);
+        });
+
+        listaEl.appendChild(card);
+    });
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+// Normaliza o conteúdo programático pra sempre virar uma lista de {materia, topicos, importancia}.
+// Tolera o formato antigo (objeto { "Matéria": ["tópico1", "tópico2"] }) e qualquer coisa inesperada,
+// pra nunca quebrar a tela por causa de um JSON salvo com um schema mais velho.
+function normalizarBlocosConteudo(valor) {
+    if (Array.isArray(valor)) {
+        return valor.filter(b => b && typeof b === 'object');
+    }
+    if (valor && typeof valor === 'object') {
+        return Object.entries(valor).map(([materia, topicos]) => ({
+            materia,
+            topicos: Array.isArray(topicos) ? topicos : [],
+            importancia: 'media',
+        }));
+    }
+    return [];
+}
+
+// Acha, no JSON do edital carregado, os blocos de conteúdo programático de um cargo pelo nome.
+function encontrarConteudoCargoNoJSON(cargoNome) {
+    if (!editalInformacoesAtual || !Array.isArray(editalInformacoesAtual.cargos)) return [];
+    const alvo = (cargoNome || '').trim().toLowerCase();
+    const achado = editalInformacoesAtual.cargos.find(c => (c.nome || '').trim().toLowerCase() === alvo);
+    return normalizarBlocosConteudo(achado && achado.conteudo_programatico);
+}
+
+async function toggleVinculoCargo(cargo, containerEl, btnEl) {
+    const aberto = containerEl.dataset.aberto === '1';
+    if (aberto) {
+        containerEl.classList.add('d-none');
+        containerEl.dataset.aberto = '0';
+        btnEl.textContent = 'Ver assuntos e vínculos';
+        return;
+    }
+    containerEl.classList.remove('d-none');
+    containerEl.dataset.aberto = '1';
+    btnEl.textContent = 'Fechar assuntos e vínculos';
+    await renderPainelVinculoCargo(cargo, containerEl);
+}
+
+async function renderPainelVinculoCargo(cargo, containerEl) {
+    containerEl.innerHTML = '<div class="small text-secondary">Carregando...</div>';
+
+    const assuntosCargo = encontrarConteudoCargoNoJSON(cargo.nome);
+    const assuntosGeral = normalizarBlocosConteudo(editalInformacoesAtual && editalInformacoesAtual.conteudo_programatico_geral);
+    const blocosIA = [...assuntosGeral, ...assuntosCargo];
+
+    const { data: vinculadosCargo } = await supabaseClient.from('concurso_topicos').select('topico_id, relevancia').eq('concurso_id', cargo.concurso_id).eq('cargo_id', cargo.id);
+    const { data: vinculadosGeral } = await supabaseClient.from('concurso_topicos').select('topico_id, relevancia').eq('concurso_id', cargo.concurso_id).is('cargo_id', null);
+
+    const listaVinc = [];
+    for (const v of (vinculadosCargo || [])) {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: v.topico_id });
+        listaVinc.push({ topicoId: v.topico_id, caminho: caminho || ('#' + v.topico_id), relevancia: v.relevancia, geral: false });
+    }
+    for (const v of (vinculadosGeral || [])) {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: v.topico_id });
+        listaVinc.push({ topicoId: v.topico_id, caminho: caminho || ('#' + v.topico_id), relevancia: v.relevancia, geral: true });
+    }
+
+    containerEl.innerHTML = `
+        <div class="row g-3">
+            <div class="col-md-7">
+                <div class="small fw-semibold mb-1">Assuntos extraídos do edital — vincule um por um</div>
+                <div class="assuntos-individuais d-flex flex-column gap-2"></div>
+            </div>
+            <div class="col-md-5">
+                <div class="small fw-semibold mb-1">Tópicos já vinculados de verdade (banco)</div>
+                <div class="lista-vinculados-cargo d-flex flex-column gap-1 mb-2"></div>
+            </div>
+        </div>
+    `;
+
+    const listaVincEl = containerEl.querySelector('.lista-vinculados-cargo');
+
+    function renderListaVinc() {
+        listaVincEl.innerHTML = '';
+        if (!listaVinc.length) {
+            listaVincEl.innerHTML = '<div class="small text-secondary fst-italic">Nada vinculado ainda.</div>';
+            return;
+        }
+        listaVinc.forEach(v => {
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-between align-items-center gap-2 border-bottom py-1';
+            row.innerHTML = `
+                <span class="small flex-fill">${escapeHtml(v.caminho)}${v.geral ? ' <span class="badge text-bg-secondary">geral</span>' : ''}</span>
+                <select class="form-select form-select-sm select-relevancia-cargo" style="width:100px;">
+                    <option value="baixa" ${v.relevancia === 'baixa' ? 'selected' : ''}>Baixa</option>
+                    <option value="media" ${v.relevancia === 'media' ? 'selected' : ''}>Média</option>
+                    <option value="alta" ${v.relevancia === 'alta' ? 'selected' : ''}>Alta</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+            `;
+            row.querySelector('.select-relevancia-cargo').addEventListener('change', async (e) => {
+                let q = supabaseClient.from('concurso_topicos').update({ relevancia: e.target.value }).eq('concurso_id', cargo.concurso_id).eq('topico_id', v.topicoId);
+                q = v.geral ? q.is('cargo_id', null) : q.eq('cargo_id', cargo.id);
+                await q;
+                v.relevancia = e.target.value;
+            });
+            row.querySelector('button').addEventListener('click', async () => {
+                let q = supabaseClient.from('concurso_topicos').delete().eq('concurso_id', cargo.concurso_id).eq('topico_id', v.topicoId);
+                q = v.geral ? q.is('cargo_id', null) : q.eq('cargo_id', cargo.id);
+                await q;
+                const idx = listaVinc.indexOf(v);
+                if (idx > -1) listaVinc.splice(idx, 1);
+                renderListaVinc();
+            });
+            listaVincEl.appendChild(row);
+        });
+    }
+    renderListaVinc();
+
+    const assuntosWrap = containerEl.querySelector('.assuntos-individuais');
+    if (!blocosIA.length) {
+        assuntosWrap.innerHTML = '<div class="small text-secondary fst-italic">Nenhum assunto extraído pela IA pra esse cargo.</div>';
+    } else {
+        blocosIA.forEach(bloco => {
+            const cabecalho = document.createElement('div');
+            cabecalho.className = 'small fw-semibold mt-2';
+            cabecalho.innerHTML = `${escapeHtml(bloco.materia)} <span class="badge text-bg-secondary">${escapeHtml(bloco.importancia || 'media')}</span>`;
+            assuntosWrap.appendChild(cabecalho);
+
+            const itens = (bloco.topicos && bloco.topicos.length) ? bloco.topicos : [bloco.materia];
+            itens.forEach(assunto => {
+                assuntosWrap.appendChild(criarLinhaAssunto(cargo, bloco.materia, assunto, bloco.importancia || 'media', (novoVinculo) => {
+                    listaVinc.push(novoVinculo);
+                    renderListaVinc();
+                }));
+            });
+        });
+    }
+}
+
+// Monta uma linha de "assunto individual" com vincular (sugestão automática + busca manual).
+// onVinculado(novoVinculo) é chamado depois de um insert bem-sucedido, pra atualizar a lista da direita.
+function criarLinhaAssunto(cargo, materia, assunto, importanciaPadrao, onVinculado) {
+    const row = document.createElement('div');
+    row.className = 'border rounded p-2';
+    row.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <span class="small flex-fill">${escapeHtml(assunto)}</span>
+            <button type="button" class="btn btn-sm btn-outline-primary btn-vincular-assunto text-nowrap">Vincular</button>
+        </div>
+        <div class="area-vincular d-none mt-2">
+            <div class="d-flex gap-2 mb-1">
+                <input type="text" class="form-control form-control-sm input-busca-assunto" placeholder="Buscar tópico (3+ letras)" autocomplete="off">
+                <select class="form-select form-select-sm select-relevancia-assunto" style="width:100px;">
+                    <option value="baixa" ${importanciaPadrao === 'baixa' ? 'selected' : ''}>Baixa</option>
+                    <option value="media" ${importanciaPadrao === 'media' ? 'selected' : ''}>Média</option>
+                    <option value="alta" ${importanciaPadrao === 'alta' ? 'selected' : ''}>Alta</option>
+                </select>
+            </div>
+            <div class="sugestao-automatica small mb-1"></div>
+            <div class="lista-sugestoes-assunto list-group" style="max-height:120px; overflow-y:auto;"></div>
+        </div>
+        <div class="resultado-vinculo small mt-1"></div>
+    `;
+
+    const btnVincular = row.querySelector('.btn-vincular-assunto');
+    const area = row.querySelector('.area-vincular');
+    const inputBusca = row.querySelector('.input-busca-assunto');
+    const selectRelevancia = row.querySelector('.select-relevancia-assunto');
+    const sugAutoEl = row.querySelector('.sugestao-automatica');
+    const listaSugEl = row.querySelector('.lista-sugestoes-assunto');
+    const resultadoEl = row.querySelector('.resultado-vinculo');
+
+    async function vincularAssunto(topicoId, caminho) {
+        const relevancia = selectRelevancia.value || importanciaPadrao || 'media';
+        const { error } = await supabaseClient.from('concurso_topicos').insert({
+            concurso_id: cargo.concurso_id, cargo_id: cargo.id, topico_id: topicoId, relevancia,
+        });
+        if (error && error.code !== '23505') {
+            resultadoEl.className = 'text-danger small mt-1';
+            resultadoEl.textContent = 'Erro: ' + error.message;
+            return;
+        }
+        resultadoEl.className = 'text-success small mt-1';
+        resultadoEl.textContent = '✓ Vinculado: ' + caminho;
+        area.classList.add('d-none');
+        btnVincular.textContent = 'Vincular de novo';
+        onVinculado({ topicoId, caminho, relevancia, geral: false });
+    }
+
+    let jaBuscouSugestao = false;
+    btnVincular.addEventListener('click', async () => {
+        const estavaAberto = !area.classList.contains('d-none');
+        area.classList.toggle('d-none');
+        if (estavaAberto || jaBuscouSugestao) return;
+
+        jaBuscouSugestao = true;
+        sugAutoEl.textContent = 'Buscando sugestão automática...';
+        const { data: melhor } = await supabaseClient.rpc('buscar_melhor_topico', { termo: assunto, contexto_materia: materia });
+        const encontrado = melhor && melhor.length > 0 ? melhor[0] : null;
+
+        if (encontrado) {
+            const caminhoSugerido = encontrado.caminho || encontrado.nome || ('#' + encontrado.id);
+            sugAutoEl.innerHTML = '';
+            const btnAceitar = document.createElement('button');
+            btnAceitar.type = 'button';
+            btnAceitar.className = 'btn btn-sm btn-outline-success py-0 px-2';
+            btnAceitar.innerHTML = `<i class="bi bi-check-lg"></i> Usar sugestão: ${escapeHtml(caminhoSugerido)}`;
+            btnAceitar.addEventListener('click', () => vincularAssunto(encontrado.id, caminhoSugerido));
+            sugAutoEl.appendChild(btnAceitar);
+        } else {
+            sugAutoEl.textContent = 'Nenhuma sugestão automática — busque manualmente abaixo.';
+        }
+    });
+
+    let debounce = null;
+    inputBusca.addEventListener('input', (e) => {
+        clearTimeout(debounce);
+        const termo = e.target.value.trim();
+        if (termo.length < 3) { listaSugEl.innerHTML = ''; return; }
+        debounce = setTimeout(async () => {
+            const { data } = await supabaseClient.rpc('buscar_topicos', { termo, materia_id_filtro: null });
+            listaSugEl.innerHTML = '';
+            (data || []).forEach(t => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action small py-1';
+                item.innerHTML = `<strong>${escapeHtml(t.nome)}</strong><br><span class="text-secondary" style="font-size:0.75rem;">${escapeHtml(t.caminho)}</span>`;
+                item.addEventListener('click', () => vincularAssunto(t.id, t.caminho));
+                listaSugEl.appendChild(item);
+            });
+        }, 350);
+    });
+
+    return row;
+}
+
+document.getElementById('btn-excluir-edital').addEventListener('click', async () => {
+    if (!concursoEmEdicao) return;
+    const msgEl = document.getElementById('msg-exclusao');
+    if (!confirm('Excluir o edital processado desse concurso? Os cargos e os vínculos de matéria continuam existindo.')) return;
+
+    const { error } = await supabaseClient.from('concurso_edital').delete().eq('concurso_id', concursoEmEdicao);
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        return;
+    }
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = 'Edital excluído ✓';
+    await carregarEdicaoExistente(concursoEmEdicao);
+});
+
+document.getElementById('btn-excluir-concurso').addEventListener('click', async () => {
+    if (!concursoEmEdicao) return;
+    const msgEl = document.getElementById('msg-exclusao');
+    const nomeConcurso = document.getElementById('titulo-editar-concurso').textContent;
+
+    const confirmacao = prompt(
+        `Isso apaga PERMANENTEMENTE o concurso "${nomeConcurso}", seus cargos, o edital e todos os vínculos de matéria. Não tem como desfazer.\n\nDigite o nome do concurso exatamente igual pra confirmar:`
+    );
+    if (confirmacao === null) return;
+    if (confirmacao !== nomeConcurso) {
+        alert('Nome não confere. Nada foi excluído.');
+        return;
+    }
+
+    msgEl.className = 'small mt-2';
+    msgEl.textContent = 'Excluindo...';
+
+    // ordem importa por causa de foreign keys: primeiro os vínculos, depois cargos, depois edital, por último o concurso
+    const { error: errTopicos } = await supabaseClient.from('concurso_topicos').delete().eq('concurso_id', concursoEmEdicao);
+    if (errTopicos) { msgEl.className = 'small mt-2 text-danger'; msgEl.textContent = 'Erro ao excluir vínculos de matéria: ' + errTopicos.message; return; }
+
+    const { error: errCargos } = await supabaseClient.from('concurso_cargos').delete().eq('concurso_id', concursoEmEdicao);
+    if (errCargos) { msgEl.className = 'small mt-2 text-danger'; msgEl.textContent = 'Erro ao excluir cargos: ' + errCargos.message; return; }
+
+    const { error: errEdital } = await supabaseClient.from('concurso_edital').delete().eq('concurso_id', concursoEmEdicao);
+    if (errEdital) { msgEl.className = 'small mt-2 text-danger'; msgEl.textContent = 'Erro ao excluir edital: ' + errEdital.message; return; }
+
+    const { error: errConcurso } = await supabaseClient.from('concursos').delete().eq('id', concursoEmEdicao);
+    if (errConcurso) { msgEl.className = 'small mt-2 text-danger'; msgEl.textContent = 'Erro ao excluir concurso: ' + errConcurso.message; return; }
+
+    alert(`Concurso "${nomeConcurso}" excluído.`);
+
+    // volta pra grid e recarrega tudo que dependia da lista de concursos
+    concursoEmEdicao = null;
+    document.getElementById('painel-editar-concurso').classList.add('d-none');
+    document.getElementById('bloco-grid-concursos').classList.remove('d-none');
+
+    const { data: concursosAtualizados } = await supabaseClient.from('concursos').select('id, nome, logo_url').eq('ativo', true).order('nome');
+    listaConcursos = concursosAtualizados || [];
+    montarGridConcursos(listaConcursos);
+
+    const select = document.getElementById('select-concurso');
+    select.innerHTML = '';
+    listaConcursos.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        select.appendChild(opt);
+    });
+});
+</script>
+
+</body>
+</html>

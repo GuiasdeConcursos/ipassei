@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pontos fracos — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="bi bi-speedometer2"></i> Painel</a>
+        <a href="perfil.html" class="nav-link"><i class="bi bi-person-circle"></i> Meu perfil</a>
+        <div class="section-label">Recursos</div>
+        <a href="estudar-concurso.html" class="nav-link"><i class="bi bi-mortarboard"></i> Estudar por concurso</a>
+        <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
+        <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
+        <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
+        <a href="pontos-fracos.html" class="nav-link active"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
+        <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
+        <span class="nav-link disabled"><i class="bi bi-pencil-square"></i> Redação</span>
+                <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
+        <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
+        <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
+        <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
+                <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+                <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
+                <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+                <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
+    </nav>
+    <div class="sidebar-foot">Sistema em construção — MVP.</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Pontos fracos</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="credit-pill" id="pill-creditos"><i class="bi bi-coin"></i> — créditos</span>
+            <a href="creditos.html" class="btn btn-gold btn-sm" title="Adicionar créditos"><i class="bi bi-plus-lg"></i></a>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div id="tela-selecao">
+            <p class="text-secondary small mb-2">Assuntos onde você mais erra, do pior pro melhor. Marque os que quiser treinar e gere questões novas na hora.</p>
+
+            <div class="mb-3" style="max-width:320px;">
+                <label class="form-label small fw-semibold">Filtrar por concurso</label>
+                <select id="select-filtro-concurso" class="form-select form-select-sm">
+                    <option value="">Todos os assuntos</option>
+                </select>
+            </div>
+
+            <div id="vazio-ranking" class="alert alert-light border small d-none">
+                Ainda não há dados suficientes. Responda pelo menos 2 questões de um mesmo assunto para ele aparecer aqui.
+            </div>
+            <div id="vazio-filtro" class="alert alert-light border small d-none">
+                Nenhum ponto fraco encontrado dentro desse concurso ainda. Tente estudar por "Estudar por concurso" primeiro, ou veja "Todos os assuntos".
+            </div>
+
+            <div id="lista-ranking" class="d-flex flex-column gap-2 mb-4"></div>
+
+            <div id="painel-gerar" class="card-soft d-none" style="max-width:500px;">
+                <h2 class="h6 fw-bold mb-3">Gerar questões dos assuntos marcados</h2>
+
+                <div class="mb-2">
+                    <span class="small fw-semibold">Selecionados:</span>
+                    <div id="chips-selecionados" class="d-flex flex-wrap gap-1 mt-1"></div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Banca</label>
+                    <select id="select-banca" class="form-select form-select-sm"></select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Dificuldade</label>
+                    <select id="select-dificuldade" class="form-select form-select-sm">
+                        <option value="facil">Fácil</option>
+                        <option value="medio" selected>Médio</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Quantidade</label>
+                    <input type="number" id="input-quantidade" class="form-control form-control-sm" value="5" min="1" max="20">
+                </div>
+
+                <div class="mb-2">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="modo" id="modo-existente" value="existente" checked>
+                        <label class="btn btn-outline-secondary btn-sm" for="modo-existente">Já existente</label>
+                        <input type="radio" class="btn-check" name="modo" id="modo-inedita" value="inedita">
+                        <label class="btn btn-outline-secondary btn-sm" for="modo-inedita">Inédita</label>
+                    </div>
+                </div>
+
+                <div id="msg" class="alert d-none"></div>
+                <button id="btn-gerar" class="btn btn-gold w-100">Gerar questões</button>
+            </div>
+        </div>
+
+        <div id="tela-questao" class="d-none" style="max-width:640px;">
+            <div class="card-soft">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge text-bg-light border" id="badge-topico"></span>
+                    <div class="d-flex gap-1">
+                        <span class="badge text-bg-light border" id="badge-dificuldade"></span>
+                        <span class="badge text-bg-success" id="badge-acertos"><i class="bi bi-check-lg"></i> 0</span>
+                        <span class="badge text-bg-danger" id="badge-erros"><i class="bi bi-x-lg"></i> 0</span>
+                        <span class="badge text-bg-secondary" id="badge-cronometro"><i class="bi bi-stopwatch"></i> 00:00</span>
+                    </div>
+                </div>
+                <div class="text-secondary small mb-2" id="badge-caminho"></div>
+                <p class="fw-semibold" id="questao-enunciado"></p>
+                <div id="questao-alternativas" class="d-flex flex-column gap-2 mb-3"></div>
+                <div id="questao-resultado" class="alert d-none"></div>
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    <button id="btn-explicacao" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-lightbulb"></i> Ver explicação detalhada</button>
+                    <button id="btn-materia" class="btn btn-outline-secondary btn-sm d-none"><i class="bi bi-book"></i> Ver matéria explicativa</button>
+                </div>
+                <div id="conteudo-extra" class="alert alert-light border small d-none"></div>
+                <button id="btn-nova" class="btn btn-outline-secondary btn-sm mt-2 d-none">← Voltar para pontos fracos</button>
+            </div>
+        </div>
+
+        <div id="tela-resumo" class="d-none" style="max-width:640px;">
+            <div class="card-soft">
+                <h2 class="h5 fw-bold mb-3"><i class="bi bi-bar-chart-line"></i> Resumo do lote</h2>
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Respondidas</div>
+                        <div class="h4 fw-bold mb-0" id="resumo-total">—</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Acertos</div>
+                        <div class="h4 fw-bold mb-0 text-success" id="resumo-acertos">—</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Taxa de acerto</div>
+                        <div class="h4 fw-bold mb-0" id="resumo-taxa">—</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Tempo total</div>
+                        <div class="h4 fw-bold mb-0" id="resumo-tempo">—</div>
+                    </div>
+                </div>
+                <h3 class="h6 fw-bold mb-2">Por assunto</h3>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm">
+                        <thead><tr class="text-secondary small"><th>Assunto</th><th class="text-center">Acertos</th><th class="text-center">Taxa</th></tr></thead>
+                        <tbody id="resumo-tabela-assuntos"></tbody>
+                    </table>
+                </div>
+                <button id="btn-voltar-resumo" class="btn btn-gold btn-sm">← Voltar</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/supabase-config.js"></script>
+<script>
+let userId = null;
+const selecionados = new Map();
+let resultadosLote = [];
+let indiceAtual = 0;
+let contadorAcertos = 0;
+let contadorErros = 0;
+let respostasRegistradas = [];
+let questaoExibidaAtual = null;
+let tempoInicio = null;
+let cronometroInterval = null;
+
+(async () => {
+    const session = await exigirLogin();
+    if (!session) return;
+    userId = session.user.id;
+    await atualizarSaldo();
+
+    const { data: bancas } = await supabaseClient.from('perfis_banca').select('id, nome').eq('ativo', true).order('nome');
+    const selectBanca = document.getElementById('select-banca');
+    (bancas || []).forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.nome;
+        selectBanca.appendChild(opt);
+    });
+
+    const { data: concursosDisponiveis } = await supabaseClient.from('concursos').select('id, nome').eq('ativo', true).order('nome');
+    const selectFiltroConcurso = document.getElementById('select-filtro-concurso');
+    (concursosDisponiveis || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nome;
+        selectFiltroConcurso.appendChild(opt);
+    });
+    selectFiltroConcurso.addEventListener('change', () => aplicarFiltroConcurso());
+
+    await carregarRanking();
+})();
+
+async function atualizarSaldo() {
+    const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
+    if (perfil) document.getElementById('pill-creditos').innerHTML = '<i class="bi bi-coin"></i> ' + perfil.saldo_creditos + ' créditos';
+}
+
+let rankingCompleto = [];
+
+async function carregarRanking() {
+    const { data } = await supabaseClient
+        .from('vw_ranking_erros_usuario')
+        .select('*')
+        .eq('usuario_id', userId)
+        .order('taxa_erro_pct', { ascending: false })
+        .limit(50);
+
+    rankingCompleto = data || [];
+
+    if (rankingCompleto.length === 0) {
+        document.getElementById('vazio-ranking').classList.remove('d-none');
+        document.getElementById('lista-ranking').innerHTML = '';
+        return;
+    }
+    document.getElementById('vazio-ranking').classList.add('d-none');
+    await aplicarFiltroConcurso();
+}
+
+async function aplicarFiltroConcurso() {
+    const concursoId = document.getElementById('select-filtro-concurso').value;
+    const vazioFiltro = document.getElementById('vazio-filtro');
+
+    if (!concursoId) {
+        vazioFiltro.classList.add('d-none');
+        renderRanking(rankingCompleto);
+        return;
+    }
+
+    const { data } = await supabaseClient
+        .from('vw_ranking_erros_por_concurso')
+        .select('topico_id')
+        .eq('usuario_id', userId)
+        .eq('concurso_id', concursoId);
+
+    const idsDoConcurso = new Set((data || []).map(d => d.topico_id));
+    const filtrado = rankingCompleto.filter(item => idsDoConcurso.has(item.topico_id));
+
+    vazioFiltro.classList.toggle('d-none', filtrado.length > 0);
+    renderRanking(filtrado);
+}
+
+function renderRanking(lista) {
+    const container = document.getElementById('lista-ranking');
+    container.innerHTML = '';
+
+    lista.forEach(item => {
+        const linha = document.createElement('div');
+        linha.className = 'card-soft d-flex flex-row justify-content-between align-items-center py-2';
+        const corBadge = item.taxa_erro_pct >= 60 ? 'text-bg-danger' : item.taxa_erro_pct >= 35 ? 'text-bg-warning' : 'text-bg-secondary';
+        const marcado = selecionados.has(item.topico_id) ? 'checked' : '';
+        linha.innerHTML = `
+            <div class="form-check flex-fill">
+                <input class="form-check-input check-topico" type="checkbox" value="${item.topico_id}" id="pf-${item.topico_id}" ${marcado}>
+                <label class="form-check-label small" for="pf-${item.topico_id}">${item.topico_caminho}</label>
+                <div class="text-secondary" style="font-size:0.76rem;">${item.total_erros} erro(s) em ${item.total_tentativas} tentativa(s)</div>
+            </div>
+            <span class="badge ${corBadge}">${item.taxa_erro_pct}% erro</span>
+        `;
+        const dados = { id: item.topico_id, nome: item.topico_caminho };
+        linha.querySelector('.check-topico').addEventListener('change', (e) => {
+            if (e.target.checked) adicionarSelecionado(dados);
+            else removerSelecionado(dados.id);
+        });
+        container.appendChild(linha);
+    });
+}
+
+function adicionarSelecionado(item) {
+    selecionados.set(item.id, item.nome);
+    renderPainelGerar();
+}
+function removerSelecionado(id) {
+    selecionados.delete(id);
+    const check = document.getElementById('pf-' + id);
+    if (check) check.checked = false;
+    renderPainelGerar();
+}
+function renderPainelGerar() {
+    const painel = document.getElementById('painel-gerar');
+    const chips = document.getElementById('chips-selecionados');
+    chips.innerHTML = '';
+    if (selecionados.size === 0) {
+        painel.classList.add('d-none');
+        return;
+    }
+    painel.classList.remove('d-none');
+    selecionados.forEach((nome, id) => {
+        const chip = document.createElement('span');
+        chip.className = 'badge text-bg-light border d-flex align-items-center gap-1';
+        chip.innerHTML = `${nome} <i class="bi bi-x-circle" style="cursor:pointer;"></i>`;
+        chip.querySelector('i').addEventListener('click', () => removerSelecionado(id));
+        chips.appendChild(chip);
+    });
+}
+
+document.getElementById('btn-gerar').addEventListener('click', gerarLote);
+
+async function gerarLote() {
+    const btn = document.getElementById('btn-gerar');
+    const msgEl = document.getElementById('msg');
+    msgEl.classList.add('d-none');
+
+    const banca_id = document.getElementById('select-banca').value;
+    const dificuldade = document.getElementById('select-dificuldade').value;
+    const modo = document.querySelector('input[name="modo"]:checked').value;
+    const quantidade = parseInt(document.getElementById('input-quantidade').value, 10);
+    const topico_ids = Array.from(selecionados.keys());
+
+    if (!banca_id) { msgEl.textContent = 'Escolha uma banca.'; msgEl.className = 'alert alert-warning'; msgEl.classList.remove('d-none'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Gerando...';
+
+    const { data, error } = await supabaseClient.functions.invoke('gerar-questoes-lote', {
+        body: { topico_ids, banca_id, dificuldade, modo, quantidade }
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Gerar questões';
+
+    if (error || data?.error) {
+        msgEl.textContent = data?.error || error.message;
+        msgEl.className = 'alert alert-danger';
+        msgEl.classList.remove('d-none');
+        return;
+    }
+    if (!data.resultados || data.resultados.length === 0) {
+        const detalhe = (data.erros && data.erros.length > 0) ? '<br><br>' + data.erros.join('<br>') : '';
+        msgEl.innerHTML = 'Não foi possível gerar questões.' + detalhe;
+        msgEl.className = 'alert alert-warning';
+        msgEl.classList.remove('d-none');
+        return;
+    }
+
+    resultadosLote = data.resultados;
+    indiceAtual = 0;
+    contadorAcertos = 0;
+    contadorErros = 0;
+    respostasRegistradas = [];
+    atualizarBadgesContador();
+    mostrarQuestao(resultadosLote[indiceAtual], dificuldade);
+    await atualizarSaldo();
+}
+
+function mostrarQuestao(q, dificuldade) {
+    questaoExibidaAtual = q;
+    document.getElementById('tela-selecao').classList.add('d-none');
+    document.getElementById('tela-questao').classList.remove('d-none');
+    document.getElementById('badge-dificuldade').textContent = dificuldade;
+    document.getElementById('badge-topico').textContent = `Questão ${indiceAtual + 1} de ${resultadosLote.length}`;
+    document.getElementById('badge-caminho').textContent = 'Carregando tópico...';
+    document.getElementById('questao-enunciado').textContent = q.enunciado;
+    document.getElementById('questao-resultado').classList.add('d-none');
+    document.getElementById('btn-nova').classList.add('d-none');
+    document.getElementById('btn-explicacao').classList.add('d-none');
+    document.getElementById('btn-materia').classList.add('d-none');
+    document.getElementById('conteudo-extra').classList.add('d-none');
+
+    supabaseClient.rpc('caminho_topico', { topico_id_param: q.topico_id }).then(({ data }) => {
+        document.getElementById('badge-caminho').innerHTML = '<i class="bi bi-signpost-split"></i> ' + (data || '');
+    });
+
+    iniciarCronometro();
+
+    const alternativasEl = document.getElementById('questao-alternativas');
+    alternativasEl.innerHTML = '';
+    q.alternativas.forEach(alt => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-secondary text-start';
+        btn.textContent = alt.letra + ') ' + alt.texto;
+        btn.addEventListener('click', () => responderQuestao(alt.letra, q));
+        alternativasEl.appendChild(btn);
+    });
+}
+
+function iniciarCronometro() {
+    if (cronometroInterval) clearInterval(cronometroInterval);
+    tempoInicio = Date.now();
+    atualizarDisplayCronometro();
+    cronometroInterval = setInterval(atualizarDisplayCronometro, 1000);
+}
+function pararCronometro() {
+    if (cronometroInterval) clearInterval(cronometroInterval);
+    cronometroInterval = null;
+    return tempoInicio ? Math.floor((Date.now() - tempoInicio) / 1000) : null;
+}
+function atualizarBadgesContador() {
+    document.getElementById('badge-acertos').innerHTML = '<i class="bi bi-check-lg"></i> ' + contadorAcertos;
+    document.getElementById('badge-erros').innerHTML = '<i class="bi bi-x-lg"></i> ' + contadorErros;
+}
+
+function atualizarDisplayCronometro() {
+    if (!tempoInicio) return;
+    const segundos = Math.floor((Date.now() - tempoInicio) / 1000);
+    const mm = String(Math.floor(segundos / 60)).padStart(2, '0');
+    const ss = String(segundos % 60).padStart(2, '0');
+    document.getElementById('badge-cronometro').innerHTML = `<i class="bi bi-stopwatch"></i> ${mm}:${ss}`;
+}
+
+async function responderQuestao(letraEscolhida, q) {
+    const tempoGasto = pararCronometro();
+    const acertou = letraEscolhida === q.resposta_correta;
+    if (acertou) contadorAcertos++; else contadorErros++;
+    atualizarBadgesContador();
+    respostasRegistradas.push({ questao_id: q.id, topico_id: q.topico_id, acertou, tempoGasto });
+
+    await supabaseClient.from('tentativas').insert({
+        usuario_id: userId, questao_id: q.id, resposta_dada: letraEscolhida, acertou, tempo_gasto_segundos: tempoGasto,
+    });
+
+    const resultadoEl = document.getElementById('questao-resultado');
+    resultadoEl.className = 'alert ' + (acertou ? 'alert-success' : 'alert-danger');
+    const tempoFormatado = tempoGasto != null ? `${String(Math.floor(tempoGasto/60)).padStart(2,'0')}:${String(tempoGasto%60).padStart(2,'0')}` : '—';
+    resultadoEl.innerHTML = (acertou ? '<i class="bi bi-check-circle-fill me-1"></i> Você acertou!' : '<i class="bi bi-x-circle-fill me-1"></i> Você errou.')
+        + ' Resposta correta: <strong>' + q.resposta_correta + '</strong>. ' + (q.justificativa_curta || '')
+        + `<div class="small mt-1 text-secondary">Tempo gasto: ${tempoFormatado}</div>`;
+    resultadoEl.classList.remove('d-none');
+
+    document.querySelectorAll('#questao-alternativas button').forEach(b => b.disabled = true);
+    document.getElementById('btn-explicacao').classList.remove('d-none');
+    document.getElementById('btn-materia').classList.remove('d-none');
+
+    const btnNova = document.getElementById('btn-nova');
+    btnNova.classList.remove('d-none');
+    if (indiceAtual < resultadosLote.length - 1) {
+        btnNova.textContent = 'Próxima questão →';
+        btnNova.onclick = () => { indiceAtual++; mostrarQuestao(resultadosLote[indiceAtual], document.getElementById('badge-dificuldade').textContent); };
+    } else {
+        btnNova.textContent = 'Ver resumo do lote';
+        btnNova.onclick = () => mostrarResumoLote();
+    }
+}
+
+async function mostrarResumoLote() {
+    document.getElementById('tela-questao').classList.add('d-none');
+    document.getElementById('tela-resumo').classList.remove('d-none');
+
+    const total = respostasRegistradas.length;
+    const acertos = respostasRegistradas.filter(r => r.acertou).length;
+    const taxa = total > 0 ? Math.round((acertos / total) * 100) : 0;
+    const tempoTotalSeg = respostasRegistradas.reduce((s, r) => s + (r.tempoGasto || 0), 0);
+
+    document.getElementById('resumo-total').textContent = total;
+    document.getElementById('resumo-acertos').textContent = acertos + '/' + total;
+    document.getElementById('resumo-taxa').textContent = taxa + '%';
+    document.getElementById('resumo-tempo').textContent =
+        String(Math.floor(tempoTotalSeg / 60)).padStart(2, '0') + ':' + String(tempoTotalSeg % 60).padStart(2, '0');
+
+    const porTopico = {};
+    respostasRegistradas.forEach(r => {
+        if (!porTopico[r.topico_id]) porTopico[r.topico_id] = { total: 0, acertos: 0 };
+        porTopico[r.topico_id].total++;
+        if (r.acertou) porTopico[r.topico_id].acertos++;
+    });
+
+    const tbody = document.getElementById('resumo-tabela-assuntos');
+    tbody.innerHTML = '';
+    for (const topicoId of Object.keys(porTopico)) {
+        const { data: caminho } = await supabaseClient.rpc('caminho_topico', { topico_id_param: parseInt(topicoId, 10) });
+        const info = porTopico[topicoId];
+        const taxaTopico = Math.round((info.acertos / info.total) * 100);
+        const cor = taxaTopico >= 70 ? 'text-success' : taxaTopico >= 40 ? 'text-warning' : 'text-danger';
+        tbody.innerHTML += `<tr><td class="small">${caminho || topicoId}</td><td class="text-center small">${info.acertos}/${info.total}</td><td class="text-center small ${cor} fw-semibold">${taxaTopico}%</td></tr>`;
+    }
+}
+
+document.getElementById('btn-voltar-resumo').addEventListener('click', async () => {
+    document.getElementById('tela-resumo').classList.add('d-none');
+    document.getElementById('tela-selecao').classList.remove('d-none');
+    selecionados.clear();
+    renderPainelGerar();
+    await carregarRanking(); // recarrega, já que o desempenho pode ter mudado
+});
+
+function escapeHtml(txt) {
+    const div = document.createElement('div');
+    div.textContent = txt;
+    return div.innerHTML;
+}
+function formatarConteudoExtra(texto, tipo) {
+    if (tipo !== 'explicacao') return `<div>${escapeHtml(texto).replace(/\n/g, '<br>')}</div>`;
+    try {
+        const obj = JSON.parse(texto);
+        let html = `<div class="mb-2"><strong>✅ Por que a alternativa correta está certa:</strong><br>${escapeHtml(obj.por_que_correta)}</div>`;
+        html += `<div class="mb-2"><strong>❌ Por que as outras estão erradas:</strong></div>`;
+        (obj.alternativas_erradas || []).forEach(a => {
+            html += `<div class="mb-2 ps-2 border-start"><strong>${escapeHtml(a.letra)})</strong> ${escapeHtml(a.motivo)}</div>`;
+        });
+        if (obj.dica_memorizacao) html += `<div class="mt-2"><strong>💡 Dica:</strong><br>${escapeHtml(obj.dica_memorizacao)}</div>`;
+        return html;
+    } catch {
+        return `<div>${escapeHtml(texto).replace(/\n/g, '<br>')}</div>`;
+    }
+}
+async function buscarConteudoExtra(tipo) {
+    if (!questaoExibidaAtual) return;
+    const btnId = tipo === 'explicacao' ? 'btn-explicacao' : 'btn-materia';
+    const btn = document.getElementById(btnId);
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Carregando...';
+
+    const { data, error } = await supabaseClient.functions.invoke('obter-conteudo-extra', {
+        body: { questao_id: questaoExibidaAtual.id, tipo }
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+
+    if (error || data?.error) { alert('Erro: ' + (data?.error || error.message)); return; }
+
+    const box = document.getElementById('conteudo-extra');
+    box.innerHTML = formatarConteudoExtra(data.texto, tipo) +
+        (data.cobrado ? '' : '<div class="text-secondary small mt-2">(já estava desbloqueado — sem cobrança)</div>');
+    box.classList.remove('d-none');
+    await atualizarSaldo();
+}
+document.getElementById('btn-explicacao').addEventListener('click', () => buscarConteudoExtra('explicacao'));
+document.getElementById('btn-materia').addEventListener('click', () => buscarConteudoExtra('materia'));
+</script>
+
+</body>
+</html>
