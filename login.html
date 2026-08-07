@@ -89,7 +89,7 @@ async function registrarIndicacaoSeTiver() {
 document.getElementById('btn-google').addEventListener('click', async () => {
     const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin + window.location.pathname.replace('login.html','') + 'dashboard.html' }
+        options: { redirectTo: window.location.origin + '/dashboard.html' }
     });
     if (error) mostrarMsg('Não foi possível entrar com Google: ' + error.message, 'error');
 });
