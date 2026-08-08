@@ -57,14 +57,20 @@
         <!-- ===================== APAGAR DE UM USUÁRIO ESPECÍFICO ===================== -->
         <div class="card-soft mb-4" style="max-width:700px;">
             <h2 class="h6 fw-bold mb-2"><i class="bi bi-person-x"></i> Apagar respostas de um usuário específico</h2>
-            <p class="text-secondary small mb-2">Busca o usuário pelo nome, confirma, e todo o histórico de respostas dele é apagado — só dele, ninguém mais é afetado.</p>
+            <p class="text-secondary small mb-2">Busca o usuário pelo email, confere os dados dele com atenção, e todo o histórico de respostas é apagado — só dele, ninguém mais é afetado.</p>
 
-            <label class="form-label small fw-semibold">Buscar usuário</label>
-            <input type="text" id="busca-usuario" class="form-control form-control-sm mb-1" placeholder="Nome do usuário (2+ letras)...">
+            <label class="form-label small fw-semibold">Buscar usuário por email</label>
+            <input type="text" id="busca-usuario" class="form-control form-control-sm mb-1" placeholder="Email do usuário (2+ letras)...">
             <div id="lista-busca-usuario" class="list-group mb-2" style="max-height:200px; overflow-y:auto;"></div>
-            <div id="usuario-escolhido" class="alert alert-light border small d-none py-2"></div>
 
-            <button type="button" id="btn-abrir-confirmacao-usuario" class="btn btn-outline-danger btn-sm d-none">
+            <div id="ficha-usuario" class="card-soft d-none" style="background:#f8f9fa;">
+                <h3 class="h6 fw-bold mb-2"><i class="bi bi-person-badge"></i> Confere se é essa pessoa mesmo:</h3>
+                <table class="table table-sm mb-0">
+                    <tbody id="ficha-usuario-corpo"></tbody>
+                </table>
+            </div>
+
+            <button type="button" id="btn-abrir-confirmacao-usuario" class="btn btn-outline-danger btn-sm d-none mt-2">
                 <i class="bi bi-trash3"></i> Apagar respostas desse usuário
             </button>
 
@@ -99,6 +105,52 @@
             </div>
         </div>
 
+        <!-- ===================== LIMPAR USUÁRIOS INATIVOS ===================== -->
+        <div class="card-soft mt-4" style="max-width:700px; border-color:#e5484d;">
+            <h2 class="h6 fw-bold mb-2 text-danger"><i class="bi bi-person-dash"></i> Limpar dados de usuários inativos</h2>
+            <p class="text-secondary small mb-2">
+                Apaga respostas, flashcards e referências de quem não acessa o sistema há um tempo. <strong>Não</strong> apaga pagamentos, créditos, indicações do programa de fidelidade nem a conta em si — só dados de uso.
+            </p>
+
+            <div class="d-flex align-items-end gap-2 mb-2">
+                <div>
+                    <label class="form-label small fw-semibold mb-1">Inativo há quantos meses</label>
+                    <input type="number" id="input-meses-inatividade" class="form-control form-control-sm" value="3" min="1" style="width:100px;">
+                </div>
+                <button type="button" id="btn-ver-inativos" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-search"></i> Ver quem seria afetado
+                </button>
+            </div>
+
+            <div id="resultado-inativos" class="d-none">
+                <div id="msg-vazio-inativos" class="alert alert-light border small d-none">Nenhum usuário encontrado com esse critério.</div>
+
+                <div id="lista-inativos-wrap" class="d-none">
+                    <p class="small mb-1"><strong id="total-inativos-texto"></strong></p>
+                    <div class="table-responsive mb-2" style="max-height:280px; overflow-y:auto;">
+                        <table class="table table-sm mb-0">
+                            <thead><tr class="text-secondary small"><th>Nome</th><th>Email</th><th>Último acesso</th><th class="text-center">Respostas</th></tr></thead>
+                            <tbody id="tabela-inativos-corpo"></tbody>
+                        </table>
+                    </div>
+
+                    <button type="button" id="btn-abrir-confirmacao-inativos" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash3"></i> Apagar dados desses usuários
+                    </button>
+
+                    <div id="painel-confirmacao-inativos" class="d-none mt-3 border-top pt-3">
+                        <p class="small mb-2">Pra confirmar, digite exatamente <strong>LIMPAR INATIVOS</strong> no campo abaixo:</p>
+                        <input type="text" id="input-confirmacao-inativos" class="form-control form-control-sm mb-2" autocomplete="off">
+                        <div class="d-flex gap-2">
+                            <button type="button" id="btn-confirmar-limpar-inativos" class="btn btn-danger btn-sm" disabled>Apagar definitivamente</button>
+                            <button type="button" id="btn-cancelar-inativos" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                        </div>
+                        <div id="msg-inativos" class="small mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -109,7 +161,7 @@ function escapeHtml(str) {
 }
 
 let usuarioEscolhidoId = null;
-let usuarioEscolhidoNome = null;
+let usuarioEscolhidoLabel = null; // email — usado na frase de confirmação
 
 (async () => {
     const acesso = await exigirAdmin();
@@ -117,7 +169,11 @@ let usuarioEscolhidoNome = null;
     document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
 })();
 
-// ================= BUSCA DE USUÁRIO =================
+function formatarData(iso) {
+    return iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
+}
+
+// ================= BUSCA DE USUÁRIO POR EMAIL =================
 let debounceTimer = null;
 document.getElementById('busca-usuario').addEventListener('input', (e) => {
     clearTimeout(debounceTimer);
@@ -125,22 +181,19 @@ document.getElementById('busca-usuario').addEventListener('input', (e) => {
     const listaEl = document.getElementById('lista-busca-usuario');
     if (termo.length < 2) { listaEl.innerHTML = ''; return; }
     debounceTimer = setTimeout(async () => {
-        const { data } = await supabaseClient
-            .from('usuarios_perfil')
-            .select('id, nome')
-            .ilike('nome', `%${termo}%`)
-            .limit(10);
+        const { data, error } = await supabaseClient.rpc('admin_buscar_usuarios_por_email', { termo_busca: termo });
         listaEl.innerHTML = '';
+        if (error) { listaEl.innerHTML = `<div class="text-danger small p-2">Erro: ${escapeHtml(error.message)}</div>`; return; }
+
         (data || []).forEach(u => {
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'list-group-item list-group-item-action small py-1';
-            item.innerHTML = `<strong>${escapeHtml(u.nome || '(sem nome)')}</strong>`;
+            item.innerHTML = `<strong>${escapeHtml(u.email || '(sem email)')}</strong><br><span class="text-secondary" style="font-size:0.78rem;">${escapeHtml(u.nome || '(sem nome)')} · ${u.total_respostas} resposta(s)</span>`;
             item.addEventListener('click', () => {
                 usuarioEscolhidoId = u.id;
-                usuarioEscolhidoNome = u.nome || u.id;
-                document.getElementById('usuario-escolhido').classList.remove('d-none');
-                document.getElementById('usuario-escolhido').innerHTML = `<i class="bi bi-check-circle"></i> Selecionado: <strong>${escapeHtml(usuarioEscolhidoNome)}</strong>`;
+                usuarioEscolhidoLabel = u.email || u.id;
+                mostrarFichaUsuario(u);
                 document.getElementById('btn-abrir-confirmacao-usuario').classList.remove('d-none');
                 document.getElementById('painel-confirmacao-usuario').classList.add('d-none');
                 listaEl.innerHTML = '';
@@ -151,9 +204,23 @@ document.getElementById('busca-usuario').addEventListener('input', (e) => {
     }, 350);
 });
 
+function mostrarFichaUsuario(u) {
+    const corpo = document.getElementById('ficha-usuario-corpo');
+    corpo.innerHTML = `
+        <tr><td class="text-secondary small">Nome</td><td class="small fw-semibold">${escapeHtml(u.nome || '(sem nome)')}</td></tr>
+        <tr><td class="text-secondary small">Email</td><td class="small fw-semibold">${escapeHtml(u.email || '—')}</td></tr>
+        <tr><td class="text-secondary small">Cargo/role</td><td class="small">${escapeHtml(u.role || 'usuario')}</td></tr>
+        <tr><td class="text-secondary small">Saldo de créditos</td><td class="small">${u.saldo_creditos}</td></tr>
+        <tr><td class="text-secondary small">Conta criada em</td><td class="small">${formatarData(u.criado_em)}</td></tr>
+        <tr><td class="text-secondary small">Status</td><td class="small">${u.bloqueado ? '<span class="text-danger">Bloqueado</span>' : 'Ativo'}</td></tr>
+        <tr><td class="text-secondary small">Respostas registradas</td><td class="small fw-semibold text-danger">${u.total_respostas} (é isso que será apagado)</td></tr>
+    `;
+    document.getElementById('ficha-usuario').classList.remove('d-none');
+}
+
 // ================= APAGAR DE UM USUÁRIO ESPECÍFICO =================
 document.getElementById('btn-abrir-confirmacao-usuario').addEventListener('click', () => {
-    document.getElementById('frase-usuario-alvo').textContent = `APAGAR ${usuarioEscolhidoNome}`;
+    document.getElementById('frase-usuario-alvo').textContent = `APAGAR ${usuarioEscolhidoLabel}`;
     document.getElementById('input-confirmacao-usuario').value = '';
     document.getElementById('btn-confirmar-apagar-usuario').disabled = true;
     document.getElementById('msg-usuario').textContent = '';
@@ -165,7 +232,7 @@ document.getElementById('btn-cancelar-usuario').addEventListener('click', () => 
 });
 
 document.getElementById('input-confirmacao-usuario').addEventListener('input', (e) => {
-    const esperado = `APAGAR ${usuarioEscolhidoNome}`;
+    const esperado = `APAGAR ${usuarioEscolhidoLabel}`;
     document.getElementById('btn-confirmar-apagar-usuario').disabled = e.target.value !== esperado;
 });
 
@@ -187,7 +254,7 @@ document.getElementById('btn-confirmar-apagar-usuario').addEventListener('click'
     }
 
     msgEl.className = 'small mt-2 text-success';
-    msgEl.textContent = `${data} resposta(s) apagada(s) de ${usuarioEscolhidoNome}.`;
+    msgEl.textContent = `${data} resposta(s) apagada(s) de ${usuarioEscolhidoLabel}.`;
     document.getElementById('input-confirmacao-usuario').value = '';
 });
 
@@ -231,6 +298,96 @@ document.getElementById('btn-confirmar-apagar-geral').addEventListener('click', 
     msgEl.className = 'small mt-2 text-success';
     msgEl.textContent = `${data} resposta(s) apagada(s) do sistema inteiro.`;
     document.getElementById('input-confirmacao-geral').value = '';
+});
+// ================= LIMPAR USUÁRIOS INATIVOS =================
+let listaInativosAtual = [];
+
+document.getElementById('btn-ver-inativos').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-ver-inativos');
+    const meses = parseInt(document.getElementById('input-meses-inatividade').value, 10);
+
+    if (!meses || meses < 1) { alert('Informe pelo menos 1 mês.'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Buscando...';
+
+    const { data, error } = await supabaseClient.rpc('admin_listar_usuarios_inativos', { meses_inatividade: meses });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-search"></i> Ver quem seria afetado';
+
+    if (error) { alert('Erro: ' + error.message); return; }
+
+    listaInativosAtual = data || [];
+    document.getElementById('resultado-inativos').classList.remove('d-none');
+    document.getElementById('painel-confirmacao-inativos').classList.add('d-none');
+
+    if (listaInativosAtual.length === 0) {
+        document.getElementById('msg-vazio-inativos').classList.remove('d-none');
+        document.getElementById('lista-inativos-wrap').classList.add('d-none');
+        return;
+    }
+    document.getElementById('msg-vazio-inativos').classList.add('d-none');
+    document.getElementById('lista-inativos-wrap').classList.remove('d-none');
+
+    const totalRespostas = listaInativosAtual.reduce((s, u) => s + Number(u.total_respostas || 0), 0);
+    document.getElementById('total-inativos-texto').textContent =
+        `${listaInativosAtual.length} usuário(s) encontrado(s), com ${totalRespostas} resposta(s) no total.`;
+
+    const corpo = document.getElementById('tabela-inativos-corpo');
+    corpo.innerHTML = '';
+    listaInativosAtual.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="small">${escapeHtml(u.nome || '(sem nome)')}</td>
+            <td class="small">${escapeHtml(u.email || '—')}</td>
+            <td class="small">${u.ultimo_login ? formatarData(u.ultimo_login) : 'Nunca acessou'}</td>
+            <td class="small text-center">${u.total_respostas}</td>
+        `;
+        corpo.appendChild(tr);
+    });
+});
+
+document.getElementById('btn-abrir-confirmacao-inativos').addEventListener('click', () => {
+    document.getElementById('input-confirmacao-inativos').value = '';
+    document.getElementById('btn-confirmar-limpar-inativos').disabled = true;
+    document.getElementById('msg-inativos').textContent = '';
+    document.getElementById('painel-confirmacao-inativos').classList.remove('d-none');
+});
+
+document.getElementById('btn-cancelar-inativos').addEventListener('click', () => {
+    document.getElementById('painel-confirmacao-inativos').classList.add('d-none');
+});
+
+document.getElementById('input-confirmacao-inativos').addEventListener('input', (e) => {
+    document.getElementById('btn-confirmar-limpar-inativos').disabled = e.target.value !== 'LIMPAR INATIVOS';
+});
+
+document.getElementById('btn-confirmar-limpar-inativos').addEventListener('click', async () => {
+    if (!confirm(`Última checagem: isso apaga dados de uso de ${listaInativosAtual.length} usuário(s), sem volta. Confirma mesmo assim?`)) return;
+
+    const btn = document.getElementById('btn-confirmar-limpar-inativos');
+    const msgEl = document.getElementById('msg-inativos');
+    const meses = parseInt(document.getElementById('input-meses-inatividade').value, 10);
+    btn.disabled = true;
+    btn.textContent = 'Apagando...';
+
+    const { data, error } = await supabaseClient.rpc('admin_limpar_usuarios_inativos', { meses_inatividade: meses });
+
+    btn.textContent = 'Apagar definitivamente';
+
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        btn.disabled = false;
+        return;
+    }
+
+    const resultado = Array.isArray(data) ? data[0] : data;
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = `Concluído: ${resultado.usuarios_afetados} usuário(s) limpo(s) — ${resultado.tentativas_apagadas} resposta(s), ${resultado.flashcards_apagados} flashcard(s), ${resultado.referencias_apagadas} referência(s) apagadas.`;
+    document.getElementById('input-confirmacao-inativos').value = '';
+    document.getElementById('lista-inativos-wrap').classList.add('d-none');
 });
 </script>
 <script src="assets/menu-toggle.js"></script>
