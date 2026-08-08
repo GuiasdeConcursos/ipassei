@@ -27,14 +27,15 @@
         <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
         <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
         <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
         <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
-        <a href="historico.html" class="nav-link active" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
+        <a href="historico.html" class="nav-link active"><i class="bi bi-clock-history"></i> Meu histórico</a>
         <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
         <a href="redacao.html" class="nav-link"><i class="bi bi-pencil-square"></i> Redação</a>
         <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
         <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
         <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
-        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
         <div class="section-label">Conta</div>
         <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
     </nav>
@@ -75,6 +76,12 @@
 
         <div id="lista-historico" class="d-flex flex-column gap-2"></div>
         <div id="vazio" class="text-secondary small d-none">Você ainda não respondeu nenhuma questão. Vá em "Gerar questões" e comece a praticar.</div>
+
+        <div id="paginacao-historico" class="d-flex justify-content-between align-items-center mt-3 d-none">
+            <button type="button" id="btn-pagina-anterior" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Anterior</button>
+            <span class="small text-secondary" id="texto-pagina-atual"></span>
+            <button type="button" id="btn-pagina-proxima" class="btn btn-outline-secondary btn-sm">Próxima <i class="bi bi-chevron-right"></i></button>
+        </div>
     </div>
 </div>
 
@@ -82,6 +89,9 @@
 <script>
 let userId = null;
 let historicoCompleto = [];
+let listaFiltradaAtual = [];
+const TAMANHO_PAGINA_HISTORICO = 15;
+let paginaAtualHistorico = 0;
 
 (async () => {
     const session = await exigirLogin();
@@ -98,6 +108,7 @@ let historicoCompleto = [];
         .order('respondido_em', { ascending: false });
 
     historicoCompleto = data || [];
+    listaFiltradaAtual = historicoCompleto;
     renderLista(historicoCompleto);
 })();
 
@@ -106,7 +117,24 @@ function renderLista(lista) {
     container.innerHTML = '';
     document.getElementById('vazio').classList.toggle('d-none', lista.length > 0);
 
-    lista.forEach(h => {
+    const totalPaginas = Math.max(1, Math.ceil(lista.length / TAMANHO_PAGINA_HISTORICO));
+    if (paginaAtualHistorico >= totalPaginas) paginaAtualHistorico = totalPaginas - 1;
+    if (paginaAtualHistorico < 0) paginaAtualHistorico = 0;
+
+    const de = paginaAtualHistorico * TAMANHO_PAGINA_HISTORICO;
+    const paginaDaLista = lista.slice(de, de + TAMANHO_PAGINA_HISTORICO);
+
+    const paginacaoEl = document.getElementById('paginacao-historico');
+    if (lista.length === 0) {
+        paginacaoEl.classList.add('d-none');
+    } else {
+        paginacaoEl.classList.remove('d-none');
+        document.getElementById('texto-pagina-atual').textContent = `Página ${paginaAtualHistorico + 1} de ${totalPaginas} · ${lista.length} registro${lista.length === 1 ? '' : 's'}`;
+        document.getElementById('btn-pagina-anterior').disabled = paginaAtualHistorico === 0;
+        document.getElementById('btn-pagina-proxima').disabled = paginaAtualHistorico >= totalPaginas - 1;
+    }
+
+    paginaDaLista.forEach(h => {
         const card = document.createElement('div');
         card.className = 'card-soft';
         const dataFormatada = new Date(h.respondido_em).toLocaleString('pt-BR');
@@ -211,6 +239,8 @@ function aplicarFiltros() {
         filtrado = filtrado.filter(h => new Date(h.respondido_em) <= fim);
     }
 
+    listaFiltradaAtual = filtrado;
+    paginaAtualHistorico = 0;
     renderLista(filtrado);
 }
 
@@ -221,7 +251,23 @@ document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
     document.getElementById('filtro-resultado').value = '';
     document.getElementById('filtro-data-inicio').value = '';
     document.getElementById('filtro-data-fim').value = '';
+    listaFiltradaAtual = historicoCompleto;
+    paginaAtualHistorico = 0;
     renderLista(historicoCompleto);
+});
+
+document.getElementById('btn-pagina-anterior').addEventListener('click', () => {
+    if (paginaAtualHistorico > 0) {
+        paginaAtualHistorico--;
+        renderLista(listaFiltradaAtual);
+    }
+});
+document.getElementById('btn-pagina-proxima').addEventListener('click', () => {
+    const totalPaginas = Math.ceil(listaFiltradaAtual.length / TAMANHO_PAGINA_HISTORICO);
+    if (paginaAtualHistorico < totalPaginas - 1) {
+        paginaAtualHistorico++;
+        renderLista(listaFiltradaAtual);
+    }
 });
 </script>
 <script src="assets/menu-toggle.js"></script>
