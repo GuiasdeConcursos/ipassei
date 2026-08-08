@@ -9,6 +9,14 @@
 <link rel="stylesheet" href="assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="icon" type="image/png" href="assets/img/logo.png">
+<style>
+    .card-concurso-filtro {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 0.35rem; width: 108px; height: 92px; text-align: center;
+        border-radius: 10px; padding: 0.4rem;
+    }
+    .card-concurso-filtro span { font-size: 0.74rem; line-height: 1.15; }
+</style>
 </head>
 <body>
 
@@ -22,10 +30,11 @@
         <a href="edital.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Edital do concurso</a>
         <a href="gerar.html" class="nav-link"><i class="bi bi-patch-question"></i> Gerar questões</a>
         <a href="revisao.html" class="nav-link"><i class="bi bi-arrow-repeat"></i> Revisar questões</a>
-        <a href="pontos-fracos.html" class="nav-link active" class="nav-link"><i class="bi bi-bullseye"></i> Pontos fracos</a>
+        <a href="pontos-fracos.html" class="nav-link active"><i class="bi bi-bullseye"></i> Pontos fracos</a>
         <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
         <a href="referencias.html" class="nav-link"><i class="bi bi-link-45deg"></i> Minhas Referências</a>
         <a href="flashcards.html" class="nav-link"><i class="bi bi-collection"></i> Flashcards</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
         <a href="filtros.html" class="nav-link"><i class="bi bi-bookmark-star"></i> Meus filtros</a>
         <a href="historico.html" class="nav-link"><i class="bi bi-clock-history"></i> Meu histórico</a>
         <a href="desempenho.html" class="nav-link"><i class="bi bi-graph-up"></i> Meu desempenho</a>
@@ -33,7 +42,7 @@
         <a href="minhas-redacoes.html" class="nav-link"><i class="bi bi-journal-text"></i> Minhas redações</a>
         <a href="enviar-questao.html" class="nav-link"><i class="bi bi-send-plus"></i> Enviar questão</a>
         <a href="feedback.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedback</a>
-        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <span class="nav-link disabled"><i class="bi bi-trophy"></i> Ranking</span>
         <div class="section-label">Conta</div>
         <a href="#" class="nav-link" onclick="fazerLogout(); return false;"><i class="bi bi-box-arrow-right"></i> Sair</a>
     </nav>
@@ -54,11 +63,9 @@
         <div id="tela-selecao">
             <p class="text-secondary small mb-2">Assuntos onde você mais erra, do pior pro melhor. Marque os que quiser treinar e gere questões novas na hora.</p>
 
-            <div class="mb-3" style="max-width:320px;">
-                <label class="form-label small fw-semibold">Filtrar por concurso</label>
-                <select id="select-filtro-concurso" class="form-select form-select-sm">
-                    <option value="">Todos os assuntos</option>
-                </select>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold d-block mb-2">Filtrar por concurso</label>
+                <div id="grade-concursos-filtro" class="d-flex flex-wrap gap-2"></div>
             </div>
 
             <div id="vazio-ranking" class="alert alert-light border small d-none">
@@ -68,7 +75,13 @@
                 Nenhum ponto fraco encontrado dentro desse concurso ainda. Tente estudar por "Estudar por concurso" primeiro, ou veja "Todos os assuntos".
             </div>
 
-            <div id="lista-ranking" class="d-flex flex-column gap-2 mb-4"></div>
+            <div id="lista-ranking" class="d-flex flex-column gap-2 mb-2"></div>
+
+            <div id="paginacao-pontos-fracos" class="d-flex justify-content-between align-items-center mb-4 d-none">
+                <button type="button" id="btn-pontos-anterior" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Anterior</button>
+                <span class="small text-secondary" id="texto-pagina-pontos"></span>
+                <button type="button" id="btn-pontos-proxima" class="btn btn-outline-secondary btn-sm">Próxima <i class="bi bi-chevron-right"></i></button>
+            </div>
 
             <div id="painel-gerar" class="card-soft d-none" style="max-width:500px;">
                 <h2 class="h6 fw-bold mb-3">Gerar questões dos assuntos marcados</h2>
@@ -182,6 +195,9 @@ let respostasRegistradas = [];
 let questaoExibidaAtual = null;
 let tempoInicio = null;
 let cronometroInterval = null;
+let concursoFiltroAtual = '';
+const TAMANHO_PAGINA_PONTOS = 20;
+let paginaAtualPontos = 0;
 
 (async () => {
     const session = await exigirLogin();
@@ -198,18 +214,58 @@ let cronometroInterval = null;
         selectBanca.appendChild(opt);
     });
 
-    const { data: concursosDisponiveis } = await supabaseClient.from('concursos').select('id, nome').eq('ativo', true).order('nome');
-    const selectFiltroConcurso = document.getElementById('select-filtro-concurso');
-    (concursosDisponiveis || []).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = c.nome;
-        selectFiltroConcurso.appendChild(opt);
-    });
-    selectFiltroConcurso.addEventListener('change', () => aplicarFiltroConcurso());
+    const { data: concursosDisponiveis } = await buscarConcursosComAtividade();
+    renderGradeConcursosFiltro(concursosDisponiveis);
 
     await carregarRanking();
 })();
+
+async function buscarConcursosComAtividade() {
+    const { data: linhas } = await supabaseClient
+        .from('vw_ranking_erros_por_concurso')
+        .select('concurso_id')
+        .eq('usuario_id', userId);
+
+    const idsUnicos = [...new Set((linhas || []).map(l => l.concurso_id))];
+    if (idsUnicos.length === 0) return { data: [] };
+
+    return await supabaseClient.from('concursos').select('id, nome').in('id', idsUnicos).order('nome');
+}
+
+function renderGradeConcursosFiltro(concursos) {
+    const grade = document.getElementById('grade-concursos-filtro');
+    grade.innerHTML = '';
+
+    const btnTodas = document.createElement('button');
+    btnTodas.type = 'button';
+    btnTodas.className = 'btn btn-navy card-concurso-filtro';
+    btnTodas.dataset.id = '';
+    btnTodas.innerHTML = '<i class="bi bi-collection" style="font-size:1.3rem;"></i><span>Todas as matérias</span>';
+    grade.appendChild(btnTodas);
+
+    (concursos || []).forEach(c => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-outline-secondary card-concurso-filtro';
+        btn.dataset.id = c.id;
+        btn.innerHTML = `<i class="bi bi-mortarboard" style="font-size:1.3rem;"></i><span>${escapeHtml(c.nome)}</span>`;
+        grade.appendChild(btn);
+    });
+
+    grade.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            grade.querySelectorAll('button').forEach(b => {
+                b.classList.remove('btn-navy');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-navy');
+            concursoFiltroAtual = btn.dataset.id;
+            paginaAtualPontos = 0;
+            aplicarFiltroConcurso();
+        });
+    });
+}
 
 async function atualizarSaldo() {
     const { data: perfil } = await supabaseClient.from('usuarios_perfil').select('saldo_creditos').eq('id', userId).single();
@@ -238,7 +294,7 @@ async function carregarRanking() {
 }
 
 async function aplicarFiltroConcurso() {
-    const concursoId = document.getElementById('select-filtro-concurso').value;
+    const concursoId = concursoFiltroAtual;
     const vazioFiltro = document.getElementById('vazio-filtro');
 
     if (!concursoId) {
@@ -260,11 +316,32 @@ async function aplicarFiltroConcurso() {
     renderRanking(filtrado);
 }
 
+let listaRankingAtual = [];
+
 function renderRanking(lista) {
+    listaRankingAtual = lista;
     const container = document.getElementById('lista-ranking');
     container.innerHTML = '';
 
-    lista.forEach(item => {
+    const totalPaginas = Math.max(1, Math.ceil(lista.length / TAMANHO_PAGINA_PONTOS));
+    if (paginaAtualPontos >= totalPaginas) paginaAtualPontos = totalPaginas - 1;
+    if (paginaAtualPontos < 0) paginaAtualPontos = 0;
+
+    const de = paginaAtualPontos * TAMANHO_PAGINA_PONTOS;
+    const paginaLista = lista.slice(de, de + TAMANHO_PAGINA_PONTOS);
+
+    const paginacaoEl = document.getElementById('paginacao-pontos-fracos');
+    if (lista.length === 0) {
+        paginacaoEl.classList.add('d-none');
+    } else {
+        paginacaoEl.classList.remove('d-none');
+        document.getElementById('texto-pagina-pontos').textContent =
+            `Página ${paginaAtualPontos + 1} de ${totalPaginas} · ${lista.length} assunto${lista.length === 1 ? '' : 's'}`;
+        document.getElementById('btn-pontos-anterior').disabled = paginaAtualPontos === 0;
+        document.getElementById('btn-pontos-proxima').disabled = paginaAtualPontos >= totalPaginas - 1;
+    }
+
+    paginaLista.forEach(item => {
         const linha = document.createElement('div');
         linha.className = 'card-soft d-flex flex-row justify-content-between align-items-center py-2';
         const corBadge = item.taxa_erro_pct >= 60 ? 'text-bg-danger' : item.taxa_erro_pct >= 35 ? 'text-bg-warning' : 'text-bg-secondary';
@@ -285,6 +362,20 @@ function renderRanking(lista) {
         container.appendChild(linha);
     });
 }
+
+document.getElementById('btn-pontos-anterior').addEventListener('click', () => {
+    if (paginaAtualPontos > 0) {
+        paginaAtualPontos--;
+        renderRanking(listaRankingAtual);
+    }
+});
+document.getElementById('btn-pontos-proxima').addEventListener('click', () => {
+    const totalPaginas = Math.ceil(listaRankingAtual.length / TAMANHO_PAGINA_PONTOS);
+    if (paginaAtualPontos < totalPaginas - 1) {
+        paginaAtualPontos++;
+        renderRanking(listaRankingAtual);
+    }
+});
 
 function adicionarSelecionado(item) {
     selecionados.set(item.id, item.nome);
@@ -489,6 +580,7 @@ document.getElementById('btn-voltar-resumo').addEventListener('click', async () 
     document.getElementById('tela-resumo').classList.add('d-none');
     document.getElementById('tela-selecao').classList.remove('d-none');
     selecionados.clear();
+    paginaAtualPontos = 0;
     renderPainelGerar();
     await carregarRanking(); // recarrega, já que o desempenho pode ter mudado
 });
