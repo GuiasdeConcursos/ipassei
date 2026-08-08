@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin: Apagar Respostas — ipassei</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand"><img src="../assets/img/logo.png" alt="ipassei" style="height:26px;"></div>
+    <nav>
+        <a href="concursos.html" class="nav-link"><i class="bi bi-mortarboard"></i> Concursos</a>
+        <a href="bancas.html" class="nav-link"><i class="bi bi-bank2"></i> Bancas</a>
+        <a href="materias.html" class="nav-link"><i class="bi bi-diagram-3"></i> Matérias</a>
+        <a href="topicos.html" class="nav-link"><i class="bi bi-list-nested"></i> Tópicos</a>
+        <a href="questoes.html" class="nav-link"><i class="bi bi-patch-question"></i> Questões</a>
+        <a href="guias.html" class="nav-link"><i class="bi bi-journal-bookmark"></i> Guias de Estudo</a>
+        <a href="usuarios.html" class="nav-link"><i class="bi bi-people"></i> Usuários</a>
+        <a href="precos.html" class="nav-link"><i class="bi bi-cash-coin"></i> Preços</a>
+        <a href="financeiro.html" class="nav-link"><i class="bi bi-graph-up"></i> Financeiro</a>
+        <a href="fidelidade.html" class="nav-link"><i class="bi bi-gift"></i> Programa de Fidelidade</a>
+        <a href="provedores.html" class="nav-link"><i class="bi bi-cpu"></i> Provedores IA</a>
+        <a href="testar-ia.html" class="nav-link"><i class="bi bi-activity"></i> Testar IA</a>
+        <a href="creditos.html" class="nav-link"><i class="bi bi-graph-up-arrow"></i> Relatório de Créditos</a>
+        <a href="importar-pdf.html" class="nav-link"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a>
+        <a href="revisar-migracao.html" class="nav-link"><i class="bi bi-shuffle"></i> Revisar Migração</a>
+        <a href="resolver-gabaritos.html" class="nav-link"><i class="bi bi-key"></i> Resolver Gabaritos</a>
+        <a href="editais.html" class="nav-link"><i class="bi bi-file-earmark-text"></i> Editais</a>
+        <a href="revisar-questoes-usuario.html" class="nav-link"><i class="bi bi-patch-question"></i> Revisar Questões (usuários)</a>
+        <a href="revisar-reportes.html" class="nav-link"><i class="bi bi-flag"></i> Reportes de Questões</a>
+        <a href="feedbacks.html" class="nav-link"><i class="bi bi-chat-square-dots"></i> Feedbacks</a>
+        <a href="apagar-respostas.html" class="nav-link active"><i class="bi bi-trash3"></i> Apagar Respostas</a>
+        <div class="section-label">Conta</div>
+        <a href="#" class="nav-link" onclick="fazerLogoutAdmin(); return false;"><i class="bi bi-box-arrow-right"></i> Sair do admin</a>
+    </nav>
+    <div class="sidebar-foot"><i class="bi bi-shield-lock"></i> Área administrativa</div>
+</aside>
+
+<div class="main-wrap">
+    <div class="topbar">
+        <div class="page-title">Apagar Respostas</div>
+        <span class="small text-secondary" id="admin-nome"></span>
+    </div>
+
+    <div class="content">
+
+        <div class="alert alert-danger" style="max-width:700px;">
+            <i class="bi bi-exclamation-triangle-fill"></i> <strong>Zona de risco.</strong>
+            As ações aqui apagam permanentemente o histórico de respostas (tabela de tentativas) — isso afeta histórico, desempenho e pontos fracos de quem for atingido. <strong>Não tem como desfazer.</strong>
+        </div>
+
+        <!-- ===================== APAGAR DE UM USUÁRIO ESPECÍFICO ===================== -->
+        <div class="card-soft mb-4" style="max-width:700px;">
+            <h2 class="h6 fw-bold mb-2"><i class="bi bi-person-x"></i> Apagar respostas de um usuário específico</h2>
+            <p class="text-secondary small mb-2">Busca o usuário pelo nome, confirma, e todo o histórico de respostas dele é apagado — só dele, ninguém mais é afetado.</p>
+
+            <label class="form-label small fw-semibold">Buscar usuário</label>
+            <input type="text" id="busca-usuario" class="form-control form-control-sm mb-1" placeholder="Nome do usuário (2+ letras)...">
+            <div id="lista-busca-usuario" class="list-group mb-2" style="max-height:200px; overflow-y:auto;"></div>
+            <div id="usuario-escolhido" class="alert alert-light border small d-none py-2"></div>
+
+            <button type="button" id="btn-abrir-confirmacao-usuario" class="btn btn-outline-danger btn-sm d-none">
+                <i class="bi bi-trash3"></i> Apagar respostas desse usuário
+            </button>
+
+            <div id="painel-confirmacao-usuario" class="d-none mt-3 border-top pt-3">
+                <p class="small mb-2">Pra confirmar, digite exatamente <strong id="frase-usuario-alvo"></strong> no campo abaixo:</p>
+                <input type="text" id="input-confirmacao-usuario" class="form-control form-control-sm mb-2" autocomplete="off">
+                <div class="d-flex gap-2">
+                    <button type="button" id="btn-confirmar-apagar-usuario" class="btn btn-danger btn-sm" disabled>Apagar definitivamente</button>
+                    <button type="button" id="btn-cancelar-usuario" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                </div>
+                <div id="msg-usuario" class="small mt-2"></div>
+            </div>
+        </div>
+
+        <!-- ===================== APAGAR TUDO (RESET GERAL) ===================== -->
+        <div class="card-soft" style="max-width:700px; border-color:#e5484d;">
+            <h2 class="h6 fw-bold mb-2 text-danger"><i class="bi bi-radioactive"></i> Apagar TODAS as respostas de TODOS os usuários</h2>
+            <p class="text-secondary small mb-2">Reset geral do sistema inteiro. Todo o histórico, de todo mundo, desde o início. Use só se tiver certeza absoluta.</p>
+
+            <button type="button" id="btn-abrir-confirmacao-geral" class="btn btn-danger btn-sm">
+                <i class="bi bi-radioactive"></i> Apagar tudo do sistema
+            </button>
+
+            <div id="painel-confirmacao-geral" class="d-none mt-3 border-top pt-3">
+                <p class="small mb-2">Essa é a ação mais destrutiva do sistema. Pra confirmar, digite exatamente <strong>APAGAR TUDO DO SISTEMA</strong> no campo abaixo:</p>
+                <input type="text" id="input-confirmacao-geral" class="form-control form-control-sm mb-2" autocomplete="off">
+                <div class="d-flex gap-2">
+                    <button type="button" id="btn-confirmar-apagar-geral" class="btn btn-danger btn-sm" disabled>Apagar tudo definitivamente</button>
+                    <button type="button" id="btn-cancelar-geral" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                </div>
+                <div id="msg-geral" class="small mt-2"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="assets/admin-config.js"></script>
+<script>
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+let usuarioEscolhidoId = null;
+let usuarioEscolhidoNome = null;
+
+(async () => {
+    const acesso = await exigirAdmin();
+    if (!acesso) return;
+    document.getElementById('admin-nome').textContent = (acesso.nome || acesso.session.user.email) + ' · ' + acesso.role;
+})();
+
+// ================= BUSCA DE USUÁRIO =================
+let debounceTimer = null;
+document.getElementById('busca-usuario').addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const termo = e.target.value.trim();
+    const listaEl = document.getElementById('lista-busca-usuario');
+    if (termo.length < 2) { listaEl.innerHTML = ''; return; }
+    debounceTimer = setTimeout(async () => {
+        const { data } = await supabaseClient
+            .from('usuarios_perfil')
+            .select('id, nome')
+            .ilike('nome', `%${termo}%`)
+            .limit(10);
+        listaEl.innerHTML = '';
+        (data || []).forEach(u => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action small py-1';
+            item.innerHTML = `<strong>${escapeHtml(u.nome || '(sem nome)')}</strong>`;
+            item.addEventListener('click', () => {
+                usuarioEscolhidoId = u.id;
+                usuarioEscolhidoNome = u.nome || u.id;
+                document.getElementById('usuario-escolhido').classList.remove('d-none');
+                document.getElementById('usuario-escolhido').innerHTML = `<i class="bi bi-check-circle"></i> Selecionado: <strong>${escapeHtml(usuarioEscolhidoNome)}</strong>`;
+                document.getElementById('btn-abrir-confirmacao-usuario').classList.remove('d-none');
+                document.getElementById('painel-confirmacao-usuario').classList.add('d-none');
+                listaEl.innerHTML = '';
+                document.getElementById('busca-usuario').value = '';
+            });
+            listaEl.appendChild(item);
+        });
+    }, 350);
+});
+
+// ================= APAGAR DE UM USUÁRIO ESPECÍFICO =================
+document.getElementById('btn-abrir-confirmacao-usuario').addEventListener('click', () => {
+    document.getElementById('frase-usuario-alvo').textContent = `APAGAR ${usuarioEscolhidoNome}`;
+    document.getElementById('input-confirmacao-usuario').value = '';
+    document.getElementById('btn-confirmar-apagar-usuario').disabled = true;
+    document.getElementById('msg-usuario').textContent = '';
+    document.getElementById('painel-confirmacao-usuario').classList.remove('d-none');
+});
+
+document.getElementById('btn-cancelar-usuario').addEventListener('click', () => {
+    document.getElementById('painel-confirmacao-usuario').classList.add('d-none');
+});
+
+document.getElementById('input-confirmacao-usuario').addEventListener('input', (e) => {
+    const esperado = `APAGAR ${usuarioEscolhidoNome}`;
+    document.getElementById('btn-confirmar-apagar-usuario').disabled = e.target.value !== esperado;
+});
+
+document.getElementById('btn-confirmar-apagar-usuario').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-confirmar-apagar-usuario');
+    const msgEl = document.getElementById('msg-usuario');
+    btn.disabled = true;
+    btn.textContent = 'Apagando...';
+
+    const { data, error } = await supabaseClient.rpc('admin_apagar_historico_usuario', { usuario_id_param: usuarioEscolhidoId });
+
+    btn.textContent = 'Apagar definitivamente';
+
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        btn.disabled = false;
+        return;
+    }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = `${data} resposta(s) apagada(s) de ${usuarioEscolhidoNome}.`;
+    document.getElementById('input-confirmacao-usuario').value = '';
+});
+
+// ================= APAGAR TUDO (RESET GERAL) =================
+const FRASE_GERAL = 'APAGAR TUDO DO SISTEMA';
+
+document.getElementById('btn-abrir-confirmacao-geral').addEventListener('click', () => {
+    document.getElementById('input-confirmacao-geral').value = '';
+    document.getElementById('btn-confirmar-apagar-geral').disabled = true;
+    document.getElementById('msg-geral').textContent = '';
+    document.getElementById('painel-confirmacao-geral').classList.remove('d-none');
+});
+
+document.getElementById('btn-cancelar-geral').addEventListener('click', () => {
+    document.getElementById('painel-confirmacao-geral').classList.add('d-none');
+});
+
+document.getElementById('input-confirmacao-geral').addEventListener('input', (e) => {
+    document.getElementById('btn-confirmar-apagar-geral').disabled = e.target.value !== FRASE_GERAL;
+});
+
+document.getElementById('btn-confirmar-apagar-geral').addEventListener('click', async () => {
+    if (!confirm('Última checagem: isso apaga o histórico de respostas de TODOS os usuários do sistema, sem volta. Confirma mesmo assim?')) return;
+
+    const btn = document.getElementById('btn-confirmar-apagar-geral');
+    const msgEl = document.getElementById('msg-geral');
+    btn.disabled = true;
+    btn.textContent = 'Apagando...';
+
+    const { data, error } = await supabaseClient.rpc('admin_apagar_todas_respostas');
+
+    btn.textContent = 'Apagar tudo definitivamente';
+
+    if (error) {
+        msgEl.className = 'small mt-2 text-danger';
+        msgEl.textContent = 'Erro: ' + error.message;
+        btn.disabled = false;
+        return;
+    }
+
+    msgEl.className = 'small mt-2 text-success';
+    msgEl.textContent = `${data} resposta(s) apagada(s) do sistema inteiro.`;
+    document.getElementById('input-confirmacao-geral').value = '';
+});
+</script>
+<script src="assets/menu-toggle.js"></script>
+</body>
+</html>
