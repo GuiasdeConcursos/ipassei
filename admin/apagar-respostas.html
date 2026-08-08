@@ -191,8 +191,8 @@ document.getElementById('busca-usuario').addEventListener('input', (e) => {
             item.className = 'list-group-item list-group-item-action small py-1';
             item.innerHTML = `<strong>${escapeHtml(u.email || '(sem email)')}</strong><br><span class="text-secondary" style="font-size:0.78rem;">${escapeHtml(u.nome || '(sem nome)')} · ${u.total_respostas} resposta(s)</span>`;
             item.addEventListener('click', () => {
-                usuarioEscolhidoId = u.id;
-                usuarioEscolhidoLabel = u.email || u.id;
+                usuarioEscolhidoId = u.usuario_id;
+                usuarioEscolhidoLabel = u.email || u.usuario_id;
                 mostrarFichaUsuario(u);
                 document.getElementById('btn-abrir-confirmacao-usuario').classList.remove('d-none');
                 document.getElementById('painel-confirmacao-usuario').classList.add('d-none');
